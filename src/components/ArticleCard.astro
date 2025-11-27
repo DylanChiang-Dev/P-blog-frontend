@@ -1,5 +1,5 @@
 ---
-import type { Article } from '../types';
+import type { Article } from "../types";
 
 interface Props {
   article: Article;
@@ -9,86 +9,68 @@ interface Props {
 const { article, featured = false } = Astro.props;
 
 const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('zh-TW', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
+  return new Date(dateString).toLocaleDateString("zh-TW", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   });
 };
 ---
 
-<a href={`/posts/${article.slug}`} class={`group block h-full ${featured ? 'md:col-span-2 lg:col-span-2' : ''}`}>
-  <article class="relative h-full bg-white dark:bg-zinc-900/50 backdrop-blur-sm rounded-3xl overflow-hidden border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-500 hover:shadow-2xl hover:-translate-y-1 flex flex-col">
-    
-    {/* Image Container */}
-    <div class={`relative overflow-hidden ${featured ? 'aspect-video md:aspect-[2/1]' : 'aspect-[4/3]'}`}>
-      {article.cover_image ? (
-        <img 
-          src={article.cover_image} 
-          alt={article.title}
-          class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
-          loading={featured ? "eager" : "lazy"}
-        />
-      ) : (
-        <div class="w-full h-full bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900 flex items-center justify-center">
+<a href={`/posts/${article.id}`} class="block group">
+  <article
+    class="bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 border border-zinc-100 dark:border-zinc-800"
+  >
+    {/* Cover Image - Wide Aspect Ratio */}
+    <div class="aspect-[2.35/1] w-full overflow-hidden relative">
+      {
+        article.cover_image ? (
+          <img
+            src={article.cover_image}
+            alt={article.title}
+            class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
+            loading="lazy"
+          />
+        ) : (
+          <div class="w-full h-full bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900 flex items-center justify-center">
             <span class="text-4xl opacity-50">📝</span>
-        </div>
-      )}
-      
-      {/* Overlay Gradient */}
-      <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"/>
-      
-      {/* Category Badge (if available, otherwise status) */}
-      <div class="absolute top-4 left-4">
-        <span class="px-3 py-1 bg-white/90 dark:bg-black/80 backdrop-blur-md text-xs font-medium rounded-full shadow-sm border border-white/20 dark:border-white/10">
-            {article.status === 'published' ? '已發佈' : '草稿'}
-        </span>
+          </div>
+        )
+      }
+
+      {/* Overlay for text readability if needed, though we put text below */}
+      <div
+        class="absolute inset-0 bg-black/5 dark:bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+      >
       </div>
     </div>
-    
+
     {/* Content */}
-    <div class="p-6 flex flex-col flex-1">
-      {/* Meta */}
-      <div class="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400 mb-3 font-medium">
-        <time datetime={article.published_at}>
-          {formatDate(article.published_at)}
-        </time>
-        <span class="w-1 h-1 rounded-full bg-zinc-300 dark:bg-zinc-700"></span>
-        <span>{article.view_count} 次閱讀</span>
-      </div>
-      
-      {/* Title */}
-      <h2 class={`font-bold text-zinc-900 dark:text-white mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${featured ? 'text-2xl md:text-3xl' : 'text-xl'}`}>
+    <div class="p-6">
+      <h2
+        class="text-xl md:text-2xl font-bold text-zinc-900 dark:text-white mb-3 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+      >
         {article.title}
       </h2>
-      
-      {/* Excerpt */}
-      <p class="text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed line-clamp-3 mb-6 flex-1">
+
+      <p
+        class="text-zinc-500 dark:text-zinc-400 text-sm leading-relaxed line-clamp-2 mb-4"
+      >
         {article.excerpt}
       </p>
-      
-      {/* Footer */}
-      <div class="flex items-center justify-between mt-auto pt-4 border-t border-zinc-100 dark:border-zinc-800/50">
+
+      <div
+        class="flex items-center justify-between text-xs text-zinc-400 dark:text-zinc-500"
+      >
         <div class="flex items-center gap-2">
-            {article.author.avatar_path ? (
-                <img src={article.author.avatar_path} alt={article.author.display_name} class="w-6 h-6 rounded-full ring-2 ring-white dark:ring-zinc-900" />
-            ) : (
-                <div class="w-6 h-6 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-[10px] text-zinc-500">
-                    {article.author.display_name[0]}
-                </div>
-            )}
-            <span class="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                {article.author.display_name}
-            </span>
+          <span>{article.author.display_name}</span>
+          <span>•</span>
+          <time datetime={article.published_at}>
+            {formatDate(article.published_at)}
+          </time>
         </div>
-        
-        {/* Tags */}
-        <div class="flex -space-x-2 overflow-hidden">
-            {article.tags?.slice(0, 3).map(tag => (
-                 <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-zinc-100 dark:bg-zinc-800 border-2 border-white dark:border-zinc-900 text-[10px] text-zinc-600 dark:text-zinc-400" title={tag.name}>
-                    #
-                 </span>
-            ))}
+        <div>
+          {article.view_count} 次閱讀
         </div>
       </div>
     </div>

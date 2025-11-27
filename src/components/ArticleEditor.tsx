@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../lib/api';
+import ThemeToggle from './ThemeToggle';
 import type { Article } from '../types';
 
 interface Props {
@@ -9,15 +10,15 @@ interface Props {
 export default function ArticleEditor({ id }: Props) {
     const [loading, setLoading] = useState(!!id);
     const [saving, setSaving] = useState(false);
-    const [article, setArticle] = useState<Partial<Article> & { tag_names?: string[] }>({
+    const [article, setArticle] = useState<Partial<Article>>({
         title: '',
         content: '',
         excerpt: '',
         status: 'draft',
         visibility: 'public',
-        tag_names: []
+
     });
-    const [tagsInput, setTagsInput] = useState('');
+
 
     // Check authentication on mount
     useEffect(() => {
@@ -36,15 +37,11 @@ export default function ArticleEditor({ id }: Props) {
 
     const fetchArticle = async () => {
         try {
-            // Use ID instead of slug to avoid URL encoding issues with Chinese characters
-            const { data } = await api.get(`/api/blog/articles/${id}`);
-            console.log('[ArticleEditor] Fetched article:', data);
+            // Use the new ID-based endpoint
+            const { data } = await api.get(`/api/blog/articles/id/${id}`);
             if (data.success) {
                 const fetchedArticle = data.data;
                 setArticle(fetchedArticle);
-                if (fetchedArticle.tags) {
-                    setTagsInput(fetchedArticle.tags.map((t: any) => t.name).join(', '));
-                }
             }
         } catch (error: any) {
             console.error('[ArticleEditor] Failed to fetch article', error);
@@ -86,16 +83,113 @@ export default function ArticleEditor({ id }: Props) {
         }
     };
 
+    const [showTableModal, setShowTableModal] = useState(false);
+    const [tableRows, setTableRows] = useState(3);
+    const [tableCols, setTableCols] = useState(3);
+
+    const insertTable = () => {
+        const textarea = document.getElementById('content-textarea') as HTMLTextAreaElement;
+        if (!textarea) return;
+
+        let tableMd = '\n';
+
+        // Header row
+        tableMd += '| ' + Array(tableCols).fill('標題').join(' | ') + ' |\n';
+
+        // Separator row
+        tableMd += '| ' + Array(tableCols).fill('---').join(' | ') + ' |\n';
+
+        // Data rows
+        for (let i = 0; i < tableRows; i++) {
+            tableMd += '| ' + Array(tableCols).fill('內容').join(' | ') + ' |\n';
+        }
+        tableMd += '\n';
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = textarea.value;
+
+        const newText = text.substring(0, start) + tableMd + text.substring(end);
+
+        setArticle({ ...article, content: newText });
+        setShowTableModal(false);
+
+        // Restore focus
+        setTimeout(() => {
+            textarea.focus();
+            const newCursorPos = start + tableMd.length;
+            textarea.setSelectionRange(newCursorPos, newCursorPos);
+        }, 0);
+    };
+
+    const insertMarkdown = (action: string) => {
+        const textarea = document.getElementById('content-textarea') as HTMLTextAreaElement;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = textarea.value;
+        const selectedText = text.substring(start, end);
+
+        let newText = '';
+        let newCursorPos = 0;
+
+        switch (action) {
+            case '**': // Bold
+                newText = text.substring(0, start) + `**${selectedText || '粗體文字'}**` + text.substring(end);
+                newCursorPos = end + 4; // Move after closing **
+                if (!selectedText) newCursorPos = start + 2; // Move inside **
+                break;
+            case '*': // Italic
+                newText = text.substring(0, start) + `*${selectedText || '斜體文字'}*` + text.substring(end);
+                newCursorPos = end + 2;
+                if (!selectedText) newCursorPos = start + 1;
+                break;
+            case 'link':
+                newText = text.substring(0, start) + `[${selectedText || '連結文字'}](url)` + text.substring(end);
+                newCursorPos = start + (selectedText ? selectedText.length + 3 : 6); // Select 'url' or move to it
+                break;
+            case 'image':
+                newText = text.substring(0, start) + `![${selectedText || '圖片描述'}](url)` + text.substring(end);
+                newCursorPos = start + (selectedText ? selectedText.length + 5 : 7);
+                break;
+            case 'code':
+                newText = text.substring(0, start) + `\`\`\`\n${selectedText || '程式碼'}\n\`\`\`` + text.substring(end);
+                newCursorPos = start + 4;
+                break;
+            default: // Headings, Lists, Quote (Prefixes)
+                const before = text.substring(0, start);
+                // Check if we are at the start of a line, if not add newline
+                const prefix = (before.endsWith('\n') || start === 0) ? '' : '\n';
+                newText = before + prefix + action + selectedText + text.substring(end);
+                newCursorPos = start + prefix.length + action.length + selectedText.length;
+                break;
+        }
+
+        setArticle({ ...article, content: newText });
+
+        // Restore focus and cursor
+        setTimeout(() => {
+            textarea.focus();
+            textarea.setSelectionRange(newCursorPos, newCursorPos);
+        }, 0);
+    };
+
     const handleSubmit = async (e?: React.MouseEvent<HTMLButtonElement>) => {
         e?.preventDefault();
+
+        if (!article.title?.trim()) {
+            alert('請輸入文章標題');
+            return;
+        }
+
         console.log('[ArticleEditor] handleSubmit called');
         console.log('[ArticleEditor] Article state:', article);
         setSaving(true);
 
         try {
             const payload = {
-                ...article,
-                tag_names: tagsInput.split(',').map(t => t.trim()).filter(Boolean)
+                ...article
             };
 
             console.log('[ArticleEditor] Sending payload:', payload);
@@ -126,9 +220,7 @@ export default function ArticleEditor({ id }: Props) {
         }
     };
 
-    const handleTagsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setTagsInput(e.target.value);
-    };
+
 
     if (loading) return (
         <div className="min-h-screen flex items-center justify-center">
@@ -148,7 +240,8 @@ export default function ArticleEditor({ id }: Props) {
                         {id ? '編輯文章' : '撰寫新文章'}
                     </span>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-3 items-center">
+                    <ThemeToggle />
                     <button
                         onClick={handleSubmit}
                         disabled={saving}
@@ -180,10 +273,35 @@ export default function ArticleEditor({ id }: Props) {
                             className="w-full bg-transparent text-4xl lg:text-5xl font-bold text-zinc-900 dark:text-white placeholder-zinc-300 dark:placeholder-zinc-700 border-none outline-none mb-8"
                             placeholder="輸入文章標題..."
                         />
+                        <div className="mb-4 flex flex-wrap gap-2 p-2 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                            {[
+                                { label: 'B', icon: <span className="font-bold">B</span>, action: '**', title: '粗體' },
+                                { label: 'I', icon: <span className="italic">I</span>, action: '*', title: '斜體' },
+                                { label: 'H2', icon: 'H2', action: '## ', title: '標題 2' },
+                                { label: 'H3', icon: 'H3', action: '### ', title: '標題 3' },
+                                { label: 'List', icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>, action: '- ', title: '無序列表' },
+                                { label: 'Num', icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path></svg>, action: '1. ', title: '有序列表' },
+                                { label: 'Link', icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>, action: 'link', title: '連結' },
+                                { label: 'Img', icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>, action: 'image', title: '圖片' },
+                                { label: 'Code', icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>, action: 'code', title: '程式碼區塊' },
+                                { label: 'Quote', icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path></svg>, action: '> ', title: '引用' },
+                                { label: 'Table', icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M3 14h18m-9-4v8m-7-8v8m14-8v8M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>, action: 'table', title: '表格' },
+                            ].map((btn) => (
+                                <button
+                                    key={btn.label}
+                                    onClick={() => btn.action === 'table' ? setShowTableModal(true) : insertMarkdown(btn.action)}
+                                    className="p-2 text-zinc-600 dark:text-zinc-400 hover:bg-white dark:hover:bg-zinc-700 hover:text-blue-500 dark:hover:text-blue-400 rounded-lg transition-colors"
+                                    title={btn.title}
+                                >
+                                    {btn.icon}
+                                </button>
+                            ))}
+                        </div>
                         <textarea
+                            id="content-textarea"
                             value={article.content}
                             onChange={e => setArticle({ ...article, content: e.target.value })}
-                            className="w-full h-[calc(100vh-400px)] bg-transparent text-lg leading-relaxed text-zinc-700 dark:text-zinc-300 placeholder-zinc-400 border-none outline-none resize-none font-mono"
+                            className="w-full h-[calc(100vh-450px)] bg-transparent text-lg leading-relaxed text-zinc-700 dark:text-zinc-300 placeholder-zinc-400 border-none outline-none resize-none font-mono"
                             placeholder="# 開始您的創作旅程..."
                         />
                     </div>
@@ -219,21 +337,6 @@ export default function ArticleEditor({ id }: Props) {
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">標籤</label>
-                                <div className="relative">
-                                    <input
-                                        type="text"
-                                        value={tagsInput}
-                                        onChange={handleTagsChange}
-                                        className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800/30 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-amber-500/50 outline-none transition-all"
-                                        placeholder="例如: React, 設計, 教學..."
-                                    />
-                                    <div className="absolute right-3 top-3 text-zinc-400">
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
 
@@ -245,16 +348,7 @@ export default function ArticleEditor({ id }: Props) {
                         </h3>
 
                         <div className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">文章摘要</label>
-                                <textarea
-                                    value={article.excerpt}
-                                    onChange={e => setArticle({ ...article, excerpt: e.target.value })}
-                                    rows={4}
-                                    className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800/30 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-amber-500/50 outline-none transition-all resize-none"
-                                    placeholder="簡短描述這篇文章的內容..."
-                                />
-                            </div>
+
 
                             <div>
                                 <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">封面圖片</label>
@@ -287,6 +381,55 @@ export default function ArticleEditor({ id }: Props) {
                     </div>
                 </div>
             </div>
+
+            {/* Table Configuration Modal */}
+            {showTableModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-zinc-200 dark:border-zinc-800">
+                        <h3 className="text-lg font-bold text-zinc-900 dark:text-white mb-4">插入表格</h3>
+
+                        <div className="space-y-4 mb-6">
+                            <div>
+                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">行數 (Rows)</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="20"
+                                    value={tableRows}
+                                    onChange={(e) => setTableRows(parseInt(e.target.value) || 1)}
+                                    className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">列數 (Columns)</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="10"
+                                    value={tableCols}
+                                    onChange={(e) => setTableCols(parseInt(e.target.value) || 1)}
+                                    className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={() => setShowTableModal(false)}
+                                className="px-4 py-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                            >
+                                取消
+                            </button>
+                            <button
+                                onClick={insertTable}
+                                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors font-medium"
+                            >
+                                插入表格
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

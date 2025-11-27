@@ -54,7 +54,10 @@ api.interceptors.response.use(
                 if (typeof window !== 'undefined' && window.localStorage) {
                     localStorage.removeItem('access_token');
                     localStorage.removeItem('user');
-                    // Optional: window.location.href = '/admin/login';
+                    // Only redirect if we are in admin area
+                    if (window.location.pathname.startsWith('/admin')) {
+                        window.location.href = '/admin/login';
+                    }
                 }
                 return Promise.reject(refreshError);
             }

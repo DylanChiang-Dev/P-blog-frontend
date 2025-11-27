@@ -8,12 +8,12 @@ import { marked } from "marked";
 // Disable prerendering for this dynamic route (enable SSR)
 export const prerender = false;
 
-const { slug } = Astro.params;
+const { id } = Astro.params;
 let article: Article | null = null;
 
 try {
-  if (slug) {
-    const response = await api.get(`/api/blog/articles/${slug}`);
+  if (id) {
+    const response = await api.get(`/api/blog/articles/id/${id}`);
     if (response.data.success) {
       article = response.data.data;
     }
@@ -26,11 +26,18 @@ if (!article) {
   return Astro.redirect("/404");
 }
 
-const contentHtml = marked.parse(article.content || "");
+const contentHtml = await marked.parse(
+  (article.content || "").replace(/^\s+/gm, ""),
+  {
+    async: true,
+    gfm: true,
+    breaks: true,
+  },
+);
 ---
 
-<Layout title={article.title} description={article.excerpt}>
-  <article class="prose prose-lg dark:prose-invert mx-auto">
+<Layout title={article.title} description={article.excerpt} articleId={id}>
+  <article class="prose prose-lg dark:prose-invert mx-auto max-w-2xl">
     <header class="mb-8 not-prose">
       {
         article.cover_image && (
@@ -77,25 +84,7 @@ const contentHtml = marked.parse(article.content || "");
       </div>
     </header>
 
-    <div class="markdown-body" set:html={contentHtml} />
-
-    <div
-      class="mt-12 pt-8 border-t border-gray-200 dark:border-gray-800 not-prose"
-    >
-      <div class="flex flex-wrap gap-2">
-        {
-          article.tags &&
-            article.tags.map((tag) => (
-              <a
-                href={`/tags/${tag.slug}`}
-                class="px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-full text-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-              >
-                #{tag.name}
-              </a>
-            ))
-        }
-      </div>
-    </div>
+    <div set:html={contentHtml} />
   </article>
 
   <CommentsSection client:visible articleId={article.id} />

@@ -2,10 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import type { Comment } from '../types';
 
+import ConfirmDialog from './ConfirmDialog';
+
 export default function CommentModeration() {
     const [comments, setComments] = useState<Comment[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
+    const [deleteId, setDeleteId] = useState<number | null>(null);
 
     useEffect(() => {
         fetchComments();
@@ -50,11 +53,12 @@ export default function CommentModeration() {
         }
     };
 
-    const handleDelete = async (id: number) => {
-        if (!confirm('確定要刪除這條留言嗎？')) return;
+    const confirmDelete = async () => {
+        if (!deleteId) return;
         try {
-            await api.delete(`/api/blog/comments/${id}`);
-            setComments(comments.filter(c => c.id !== id));
+            await api.delete(`/api/blog/comments/${deleteId}`);
+            setComments(comments.filter(c => c.id !== deleteId));
+            setDeleteId(null);
         } catch (error) {
             alert('刪除留言失敗');
         }
@@ -142,7 +146,7 @@ export default function CommentModeration() {
                                         </>
                                     )}
                                     <button
-                                        onClick={() => handleDelete(comment.id)}
+                                        onClick={() => setDeleteId(comment.id)}
                                         className="px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm font-bold rounded-xl transition-colors"
                                     >
                                         刪除
@@ -153,6 +157,16 @@ export default function CommentModeration() {
                     ))
                 )}
             </div>
+
+            <ConfirmDialog
+                isOpen={!!deleteId}
+                title="刪除留言"
+                message="確定要刪除這條留言嗎？此操作無法復原。"
+                confirmText="確認刪除"
+                isDestructive={true}
+                onConfirm={confirmDelete}
+                onCancel={() => setDeleteId(null)}
+            />
         </div>
     );
 }

@@ -1,14 +1,16 @@
 ---
-import { ClientRouter } from 'astro:transitions';
-import '../styles/global.css';
-import ThemeToggle from '../components/ThemeToggle';
+import { ClientRouter } from "astro:transitions";
+import "../styles/global.css";
+import ThemeToggle from "../components/ThemeToggle";
+import EditArticleButton from "../components/EditArticleButton";
 
 interface Props {
 	title: string;
 	description?: string;
+	articleId?: string | number;
 }
 
-const { title, description = "A minimalist blog." } = Astro.props;
+const { title, description = "A minimalist blog.", articleId } = Astro.props;
 ---
 
 <!doctype html>
@@ -21,20 +23,66 @@ const { title, description = "A minimalist blog." } = Astro.props;
 		<meta name="generator" content={Astro.generator} />
 		<title>{title}</title>
 		<ClientRouter />
+		<script is:inline>
+			// Initialize theme to prevent FOUC
+			const theme = (() => {
+				if (
+					typeof localStorage !== "undefined" &&
+					localStorage.getItem("theme")
+				) {
+					return localStorage.getItem("theme");
+				}
+				// Default to dark mode
+				return "dark";
+			})();
+
+			if (theme === "dark") {
+				document.documentElement.classList.add("dark");
+			} else {
+				document.documentElement.classList.remove("dark");
+			}
+		</script>
 	</head>
-	<body class="bg-background text-foreground antialiased min-h-screen flex flex-col">
-		<div class="fixed inset-0 -z-10 h-full w-full bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] dark:bg-[radial-gradient(#1f2937_1px,transparent_1px)]"></div>
-		
-		<header class="sticky top-0 z-50 w-full border-b border-white/10 bg-white/70 backdrop-blur-xl dark:bg-black/70 dark:border-white/5 supports-[backdrop-filter]:bg-white/60">
-			<div class="container mx-auto px-4 h-16 flex items-center justify-between">
-				<a href="/" class="text-xl font-bold tracking-tight hover:opacity-80 transition-opacity">
+	<body
+		class="bg-background text-foreground antialiased min-h-screen flex flex-col"
+	>
+		<div
+			class="fixed inset-0 -z-10 h-full w-full bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] dark:bg-[radial-gradient(#1f2937_1px,transparent_1px)]"
+		>
+		</div>
+
+		<header
+			class="sticky top-0 z-50 w-full border-b border-white/10 bg-white/70 backdrop-blur-xl dark:bg-black/70 dark:border-white/5 supports-[backdrop-filter]:bg-white/60"
+		>
+			<div
+				class="container mx-auto px-4 h-16 flex items-center justify-between"
+			>
+				<a
+					href="/"
+					class="text-xl font-bold tracking-tight hover:opacity-80 transition-opacity"
+				>
 					Blog
 				</a>
-				<nav class="flex gap-6 text-sm font-medium">
-					<a href="/" class="hover:text-blue-500 transition-colors">首頁</a>
-					<a href="/about" class="hover:text-blue-500 transition-colors">關於</a>
-					<a href="/admin" class="hover:text-blue-500 transition-colors">管理</a>
-					<div class="pl-4 border-l border-gray-200 dark:border-gray-800">
+				<nav class="flex items-center gap-6 text-sm font-medium">
+					<a href="/" class="hover:text-blue-500 transition-colors"
+						>首頁</a
+					>
+
+					<a
+						href="/admin"
+						class="hover:text-blue-500 transition-colors">管理</a
+					>
+					{
+						articleId && (
+							<EditArticleButton
+								client:only="react"
+								articleId={articleId}
+							/>
+						)
+					}
+					<div
+						class="pl-4 border-l border-gray-200 dark:border-gray-800"
+					>
 						<ThemeToggle client:load />
 					</div>
 				</nav>
@@ -45,7 +93,9 @@ const { title, description = "A minimalist blog." } = Astro.props;
 			<slot />
 		</main>
 
-		<footer class="border-t border-black/5 dark:border-white/5 py-8 text-center text-sm text-gray-500">
+		<footer
+			class="border-t border-black/5 dark:border-white/5 py-8 text-center text-sm text-gray-500"
+		>
 			<p>&copy; {new Date().getFullYear()} Blog. 版權所有.</p>
 		</footer>
 	</body>

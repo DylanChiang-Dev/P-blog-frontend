@@ -24,11 +24,14 @@ export default function ArticleManager() {
                 ...(draftRes.data.success ? draftRes.data.data.items : [])
             ];
 
-            // Sort by created_at descending
-            allArticles.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+            // Deduplicate by ID to avoid React key warnings
+            const uniqueArticles = Array.from(new Map(allArticles.map(item => [item.id, item])).values());
 
-            console.log('[ArticleManager] Fetched articles:', allArticles.length);
-            setArticles(allArticles);
+            // Sort by created_at descending
+            uniqueArticles.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+            console.log('[ArticleManager] Fetched articles:', uniqueArticles.length);
+            setArticles(uniqueArticles);
         } catch (error) {
             console.error('[ArticleManager] Failed to fetch articles', error);
         } finally {
@@ -36,14 +39,23 @@ export default function ArticleManager() {
         }
     };
 
-    const handleDelete = async (id: number) => {
-        if (!confirm('確定要刪除這篇文章嗎？')) return;
+    const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+
+    const confirmDelete = async () => {
+        if (!deleteTargetId) return;
+
         try {
-            await api.delete(`/api/blog/articles/${id}`);
-            setArticles(articles.filter(a => a.id !== id));
+            await api.delete(`/api/blog/articles/${deleteTargetId}`);
+            setArticles(articles.filter(a => a.id !== deleteTargetId));
+            setDeleteTargetId(null);
         } catch (error) {
             alert('刪除文章失敗');
         }
+    };
+
+    const handleDeleteClick = (e: React.MouseEvent, id: number) => {
+        e.stopPropagation();
+        setDeleteTargetId(id);
     };
 
     return (
@@ -70,7 +82,8 @@ export default function ArticleManager() {
                         articles.map((article) => (
                             <div
                                 key={article.id}
-                                className="group bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-[1.5rem] p-4 flex items-center gap-6 hover:bg-white/60 dark:hover:bg-white/10 transition-all hover:scale-[1.01] hover:shadow-xl"
+                                onClick={() => window.location.href = `/admin/editor/${article.id}`}
+                                className="group bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-[1.5rem] p-4 flex items-center gap-6 hover:bg-white/60 dark:hover:bg-white/10 transition-all hover:scale-[1.01] hover:shadow-xl cursor-pointer"
                             >
                                 {/* Status Dot */}
                                 <div className={`w-3 h-3 rounded-full shrink-0 ${article.status === 'published' ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-yellow-500'
@@ -96,15 +109,20 @@ export default function ArticleManager() {
 
                                 {/* Actions */}
                                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <a
-                                        href={`/admin/editor/${article.id}`}
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            window.location.href = `/admin/editor/${article.id}`;
+                                        }}
                                         className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full transition-colors"
                                         title="編輯"
                                     >
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                                    </a>
+                                    </button>
                                     <button
-                                        onClick={() => handleDelete(article.id)}
+                                        type="button"
+                                        onClick={(e) => handleDeleteClick(e, article.id)}
                                         className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full transition-colors"
                                         title="刪除"
                                     >
@@ -114,6 +132,33 @@ export default function ArticleManager() {
                             </div>
                         ))
                     )}
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {deleteTargetId && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setDeleteTargetId(null)}></div>
+                    <div className="relative bg-white dark:bg-zinc-900 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-gray-200 dark:border-zinc-800">
+                        <h3 className="text-lg font-bold mb-2 text-gray-900 dark:text-white">確認刪除</h3>
+                        <p className="text-gray-500 dark:text-gray-400 mb-6">
+                            確定要刪除這篇文章嗎？此操作無法撤銷。
+                        </p>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setDeleteTargetId(null)}
+                                className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors font-medium"
+                            >
+                                取消
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors font-medium shadow-lg shadow-red-500/20"
+                            >
+                                確認刪除
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

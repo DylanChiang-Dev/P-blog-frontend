@@ -1,4 +1,8 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* Force class-based dark mode in Tailwind v4 */
+@variant dark (&:where(.dark, .dark *));
 
 @theme {
   --animate-aurora: aurora 20s linear infinite;
@@ -68,17 +72,16 @@
   --card: var(--color-ios-card);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-ios-bg: #000000;
-    --color-ios-card: #1c1c1e;
-    --color-ios-text: #ffffff;
-    --color-ios-gray: #8e8e93;
+/* Use .dark class instead of @media for CSS variables */
+.dark {
+  --color-ios-bg: #000000;
+  --color-ios-card: #1c1c1e;
+  --color-ios-text: #ffffff;
+  --color-ios-gray: #8e8e93;
 
-    --background: var(--color-ios-bg);
-    --foreground: var(--color-ios-text);
-    --card: var(--color-ios-card);
-  }
+  --background: var(--color-ios-bg);
+  --foreground: var(--color-ios-text);
+  --card: var(--color-ios-card);
 }
 
 body {
