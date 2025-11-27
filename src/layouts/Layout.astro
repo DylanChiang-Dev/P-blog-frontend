@@ -1,5 +1,4 @@
 ---
-import { ClientRouter } from "astro:transitions";
 import "../styles/global.css";
 import ThemeToggle from "../components/ThemeToggle";
 import EditArticleButton from "../components/EditArticleButton";
@@ -22,7 +21,6 @@ const { title, description = "A minimalist blog.", articleId } = Astro.props;
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="generator" content={Astro.generator} />
 		<title>{title}</title>
-		<ClientRouter />
 		<script is:inline>
 			// Initialize theme to prevent FOUC
 			const theme = (() => {
@@ -68,10 +66,16 @@ const { title, description = "A minimalist blog.", articleId } = Astro.props;
 						>首頁</a
 					>
 
-					<a
-						href="/admin"
-						class="hover:text-blue-500 transition-colors">管理</a
-					>
+					{
+						Astro.url.pathname !== "/admin/login" && (
+							<a
+								href="/admin"
+								class="hover:text-blue-500 transition-colors"
+							>
+								管理
+							</a>
+						)
+					}
 					{
 						articleId && (
 							<EditArticleButton

@@ -208,7 +208,21 @@ export default function ArticleEditor({ id }: Props) {
             // Only redirect if save was successful
             if (response.data.success) {
                 console.log('[ArticleEditor] Save successful, redirecting...');
-                window.location.href = '/admin';
+
+                // Check if we came from an article detail page
+                const referrer = document.referrer;
+                const articleDetailPattern = /\/posts\/\d+/;
+
+                if (referrer && articleDetailPattern.test(referrer)) {
+                    // Return to the article detail page
+                    window.location.href = referrer;
+                } else if (article.id) {
+                    // If editing existing article from admin, go to its detail page
+                    window.location.href = `/posts/${article.id}`;
+                } else {
+                    // Default to admin dashboard
+                    window.location.href = '/admin';
+                }
             } else {
                 throw new Error(response.data.message || 'Save failed');
             }
@@ -233,9 +247,21 @@ export default function ArticleEditor({ id }: Props) {
             {/* Header Actions */}
             <div className="flex justify-between items-center mb-8 sticky top-4 z-50 bg-white/80 dark:bg-black/80 backdrop-blur-xl p-4 rounded-full border border-white/20 shadow-lg">
                 <div className="flex items-center gap-4">
-                    <a href="/admin" className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+                    <button
+                        onClick={() => {
+                            const referrer = document.referrer;
+                            const articleDetailPattern = /\/posts\/\d+/;
+
+                            if (referrer && articleDetailPattern.test(referrer)) {
+                                window.location.href = referrer;
+                            } else {
+                                window.location.href = '/admin';
+                            }
+                        }}
+                        className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                    >
                         <svg className="w-6 h-6 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                    </a>
+                    </button>
                     <span className="font-medium text-zinc-500 dark:text-zinc-400">
                         {id ? '編輯文章' : '撰寫新文章'}
                     </span>

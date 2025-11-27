@@ -1,31 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { useStore } from '@nanostores/react';
-import { $auth, checkAuth } from '../stores/auth';
 
 interface EditArticleButtonProps {
     articleId: string | number;
 }
 
 export default function EditArticleButton({ articleId }: EditArticleButtonProps) {
-    const auth = useStore($auth);
-    const [mounted, setMounted] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
 
     useEffect(() => {
-        setMounted(true);
-        // Ensure auth is checked on mount if not already done
-        if (!auth.isAuthenticated && !auth.loading) {
-            checkAuth();
-        }
+        // Check if user has access token in localStorage
+        const token = localStorage.getItem('access_token');
+        setIsLoggedIn(!!token);
     }, []);
 
-    // Don't render anything during SSR or before mount to avoid hydration mismatch
-    if (!mounted) return null;
-
-    if (!auth.isAuthenticated) return null;
+    if (!isLoggedIn) return null;
 
     return (
         <a
-            href={`/admin/edit/${articleId}`}
+            href={`/admin/editor/${articleId}`}
             className="text-sm font-medium text-blue-500 hover:text-blue-600 transition-colors flex items-center gap-1"
         >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
