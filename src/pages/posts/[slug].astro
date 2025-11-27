@@ -1,0 +1,102 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import CommentsSection from "../../components/CommentsSection";
+import { api } from "../../lib/api";
+import type { Article } from "../../types";
+import { marked } from "marked";
+
+// Disable prerendering for this dynamic route (enable SSR)
+export const prerender = false;
+
+const { slug } = Astro.params;
+let article: Article | null = null;
+
+try {
+  if (slug) {
+    const response = await api.get(`/api/blog/articles/${slug}`);
+    if (response.data.success) {
+      article = response.data.data;
+    }
+  }
+} catch (e) {
+  console.warn("Backend unavailable or article not found", e);
+}
+
+if (!article) {
+  return Astro.redirect("/404");
+}
+
+const contentHtml = marked.parse(article.content || "");
+---
+
+<Layout title={article.title} description={article.excerpt}>
+  <article class="prose prose-lg dark:prose-invert mx-auto">
+    <header class="mb-8 not-prose">
+      {
+        article.cover_image && (
+          <div class="aspect-video w-full overflow-hidden rounded-2xl mb-8 bg-gray-100 dark:bg-gray-800 shadow-sm">
+            <img
+              src={article.cover_image}
+              alt={article.title}
+              class="w-full h-full object-cover"
+            />
+          </div>
+        )
+      }
+
+      <h1 class="text-3xl md:text-5xl font-bold tracking-tight mb-4">
+        {article.title}
+      </h1>
+
+      <div class="flex items-center gap-2">
+        {
+          article.author.avatar_path && (
+            <img
+              src={article.author.avatar_path}
+              alt={article.author.display_name}
+              class="w-8 h-8 rounded-full"
+            />
+          )
+        }
+        <span>{article.author.display_name}</span>
+      </div>
+      <div
+        class="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mb-8"
+      >
+        <time datetime={article.published_at}>
+          {
+            new Date(article.published_at).toLocaleDateString("zh-TW", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })
+          }
+        </time>
+        <span>•</span>
+        <span>{article.view_count} 次閱讀</span>
+      </div>
+    </header>
+
+    <div class="markdown-body" set:html={contentHtml} />
+
+    <div
+      class="mt-12 pt-8 border-t border-gray-200 dark:border-gray-800 not-prose"
+    >
+      <div class="flex flex-wrap gap-2">
+        {
+          article.tags &&
+            article.tags.map((tag) => (
+              <a
+                href={`/tags/${tag.slug}`}
+                class="px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-full text-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              >
+                #{tag.name}
+              </a>
+            ))
+        }
+      </div>
+    </div>
+  </article>
+
+  <CommentsSection client:visible articleId={article.id} />
+</Layout>

@@ -1,0 +1,10 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import LoginForm from '../../components/LoginForm';
+---
+
+<Layout title="Admin Login">
+  <div className="min-h-[80vh] flex items-center justify-center">
+    <LoginForm client:load />
+  </div>
+</Layout>

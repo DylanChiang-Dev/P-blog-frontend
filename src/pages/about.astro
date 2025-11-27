@@ -1,0 +1,44 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+export const prerender = true;
+---
+
+<Layout title="關於我">
+    <div class="prose prose-lg dark:prose-invert mx-auto py-12">
+        <h1>關於我</h1>
+
+        <p class="lead">
+            你好！歡迎來到我的部落格。這裡是我分享技術見解、學習筆記和生活思考的地方。
+        </p>
+
+        <div
+            class="my-8 p-6 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800"
+        >
+            <h3 class="mt-0">👋 簡介</h3>
+            <p>
+                我是一名全棧開發者，熱衷於探索新技術和構建優秀的 Web 應用。
+                我相信技術應該為生活服務，並致力於創造既美觀又實用的數位產品。
+            </p>
+        </div>
+
+        <h2>技術棧</h2>
+        <ul>
+            <li><strong>前端：</strong> React, Vue, Astro, TailwindCSS</li>
+            <li><strong>後端：</strong> Node.js, PHP, Python</li>
+            <li><strong>數據庫：</strong> MySQL, PostgreSQL, Redis</li>
+            <li><strong>工具：</strong> Git, Docker, Linux</li>
+        </ul>
+
+        <h2>聯繫方式</h2>
+        <p>如果你有任何問題或合作意向，歡迎通過以下方式聯繫我：</p>
+        <ul>
+            <li>Email: contact@example.com</li>
+            <li>
+                GitHub: <a
+                    href="https://github.com/yourusername"
+                    target="_blank">@yourusername</a>
+            </li>
+        </ul>
+    </div>
+</Layout>

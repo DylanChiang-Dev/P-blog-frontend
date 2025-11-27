@@ -1,0 +1,105 @@
+---
+export const prerender = false;
+
+import Layout from "../layouts/Layout.astro";
+import ArticleCard from "../components/ArticleCard.astro";
+import { api } from "../lib/api";
+import type { Article } from "../types";
+
+let articles: Article[] = [];
+let error = null;
+
+try {
+  const response = await api.get(
+    "/api/blog/articles?status=published&limit=100",
+  );
+  if (response.data.success) {
+    articles = response.data.data.items;
+  }
+} catch (e) {
+  console.warn("Backend unavailable", e);
+  error = "暫時無法獲取文章，請稍後再試。";
+}
+
+const featuredArticle = articles[0];
+const remainingArticles = articles.slice(1);
+---
+
+<Layout title="我的部落格">
+  {/* Hero Section */}
+  <section class="relative py-20 md:py-32 overflow-hidden">
+    <div class="absolute inset-0 -z-10">
+      <div
+        class="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-b from-blue-100/50 to-transparent dark:from-blue-900/20 dark:to-transparent rounded-[100%] blur-3xl opacity-70"
+      >
+      </div>
+    </div>
+
+    <div class="container mx-auto px-4 text-center space-y-6">
+      <div
+        class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-medium border border-blue-100 dark:border-blue-800/50 mb-4"
+      >
+        <span class="relative flex h-2 w-2">
+          <span
+            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"
+          ></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"
+          ></span>
+        </span>
+        探索技術與生活的邊界
+      </div>
+
+      <h1
+        class="text-5xl md:text-7xl font-bold tracking-tight text-zinc-900 dark:text-white"
+      >
+        程式<span
+          class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-violet-600"
+          >思維</span
+        >
+      </h1>
+
+      <p
+        class="text-xl text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed"
+      >
+        分享關於全棧開發、軟體架構以及現代 Web 技術的深度見解。
+      </p>
+    </div>
+  </section>
+
+  {
+    error ? (
+      <div class="text-center py-12 text-red-500 bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-100 dark:border-red-900/20 mx-4">
+        {error}
+      </div>
+    ) : (
+      <div class="container mx-auto px-4 pb-20">
+        {/* Featured Section */}
+        {featuredArticle && (
+          <div class="mb-16">
+            <div class="flex items-center gap-4 mb-8">
+              <h2 class="text-2xl font-bold text-zinc-900 dark:text-white">
+                精選文章
+              </h2>
+              <div class="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+            </div>
+            <ArticleCard article={featuredArticle} featured={true} />
+          </div>
+        )}
+
+        {/* Latest Articles Grid */}
+        <div class="flex items-center gap-4 mb-8">
+          <h2 class="text-2xl font-bold text-zinc-900 dark:text-white">
+            最新發佈
+          </h2>
+          <div class="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {remainingArticles.map((article) => (
+            <ArticleCard article={article} />
+          ))}
+        </div>
+      </div>
+    )
+  }
+</Layout>

@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+@theme {
+  --animate-aurora: aurora 20s linear infinite;
+  --animate-float: float 6s ease-in-out infinite;
+
+  @keyframes aurora {
+    0% {
+      background-position: 0% 50%;
+    }
+
+    50% {
+      background-position: 100% 50%;
+    }
+
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  @keyframes float {
+
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+}
+
+/* Custom Scrollbar for Glass UI */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.3);
+  border-radius: 100vh;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.5);
+}
+
+@theme {
+  --color-ios-bg: #f2f2f7;
+  --color-ios-card: #ffffff;
+  --color-ios-text: #000000;
+  --color-ios-gray: #8e8e93;
+  --color-ios-blue: #007aff;
+  --color-ios-red: #ff3b30;
+  --color-ios-green: #34c759;
+
+  --font-sans: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+}
+
+:root {
+  --background: var(--color-ios-bg);
+  --foreground: var(--color-ios-text);
+  --card: var(--color-ios-card);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-ios-bg: #000000;
+    --color-ios-card: #1c1c1e;
+    --color-ios-text: #ffffff;
+    --color-ios-gray: #8e8e93;
+
+    --background: var(--color-ios-bg);
+    --foreground: var(--color-ios-text);
+    --card: var(--color-ios-card);
+  }
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}

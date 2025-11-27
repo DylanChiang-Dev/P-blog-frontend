@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog API 測試工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 0;
+        }
+
+        .sidebar {
+            background: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+            padding: 20px;
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+
+        .sidebar h3 {
+            font-size: 14px;
+            text-transform: uppercase;
+            color: #6c757d;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .test-group {
+            margin-bottom: 25px;
+        }
+
+        .test-btn {
+            display: block;
+            width: 100%;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .test-btn:hover {
+            background: #e9ecef;
+            border-color: #667eea;
+        }
+
+        .test-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .main-panel {
+            padding: 30px;
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+
+        .test-section {
+            display: none;
+        }
+
+        .test-section.active {
+            display: block;
+        }
+
+        .test-form {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            margin-bottom: 15px;
+        }
+
+        .form-row label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .form-row input,
+        .form-row textarea,
+        .form-row select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .form-row textarea {
+            min-height: 100px;
+            font-family: monospace;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .result-box {
+            background: #212529;
+            color: #0f0;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .auth-info {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .auth-info strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .auth-info code {
+            background: #fff;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Blog API 測試工具</h1>
+            <p>Base URL: https://pyqapi.3331322.xyz</p>
+        </div>
+        <div class="content">
+            <div class="sidebar">
+                <div class="test-group">
+                    <h3>認證</h3>
+                    <button class="test-btn active" onclick="showTest('login')">登入</button>
+                    <button class="test-btn" onclick="showTest('refresh')">刷新 Token</button>
+                    <button class="test-btn" onclick="showTest('logout')">登出</button>
+                </div>
+                <div class="test-group">
+                    <h3>文章管理</h3>
+                    <button class="test-btn" onclick="showTest('articles-list')">文章列表</button>
+                    <button class="test-btn" onclick="showTest('article-detail')">文章詳情</button>
+                    <button class="test-btn" onclick="showTest('article-create')">創建文章</button>
+                    <button class="test-btn" onclick="showTest('article-update')">更新文章</button>
+                    <button class="test-btn" onclick="showTest('article-delete')">刪除文章</button>
+                </div>
+                <div class="test-group">
+                    <h3>評論管理</h3>
+                    <button class="test-btn" onclick="showTest('comments-list')">評論列表</button>
+                    <button class="test-btn" onclick="showTest('comment-create')">發表評論</button>
+                    <button class="test-btn" onclick="showTest('comment-approve')">審核評論</button>
+                </div>
+                <div class="test-group">
+                    <h3>分類 & 標籤</h3>
+                    <button class="test-btn" onclick="showTest('categories')">分類列表</button>
+                    <button class="test-btn" onclick="showTest('tags')">標籤列表</button>
+                </div>
+                <div class="test-group">
+                    <h3>媒體</h3>
+                    <button class="test-btn" onclick="showTest('upload')">圖片上傳</button>
+                </div>
+            </div>
+
+            <div class="main-panel">
+                <!-- 登入 -->
+                <div id="test-login" class="test-section active">
+                    <h2>登入 API</h2>
+                    <div class="test-form">
+                        <div class="form-row">
+                            <label>Email</label>
+                            <input type="email" id="login-email" value="admin@example.com">
+                        </div>
+                        <div class="form-row">
+                            <label>密碼</label>
+                            <input type="password" id="login-password" value="">
+                        </div>
+                        <button class="btn-primary" onclick="testLogin()">發送請求</button>
+                    </div>
+                    <div id="result-login" class="result-box"></div>
+                </div>
+
+                <!-- 文章列表 -->
+                <div id="test-articles-list" class="test-section">
+                    <h2>文章列表 API</h2>
+                    <div class="auth-info">
+                        <strong>⚠️ 無需認證</strong>
+                        可選參數: limit, cursor, status
+                    </div>
+                    <div class="test-form">
+                        <div class="form-row">
+                            <label>Status</label>
+                            <select id="articles-status">
+                                <option value="">全部</option>
+                                <option value="published">已發佈</option>
+                                <option value="draft">草稿</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label>Limit</label>
+                            <input type="number" id="articles-limit" value="10">
+                        </div>
+                        <button class="btn-primary" onclick="testArticlesList()">發送請求</button>
+                    </div>
+                    <div id="result-articles-list" class="result-box"></div>
+                </div>
+
+                <!-- 文章詳情 -->
+                <div id="test-article-detail" class="test-section">
+                    <h2>文章詳情 API</h2>
+                    <div class="auth-info">
+                        <strong>⚠️ 無需認證</strong>
+                    </div>
+                    <div class="test-form">
+                        <div class="form-row">
+                            <label>文章 Slug</label>
+                            <input type="text" id="article-slug" value="welcome-to-astro-blog">
+                        </div>
+                        <button class="btn-primary" onclick="testArticleDetail()">發送請求</button>
+                    </div>
+                    <div id="result-article-detail" class="result-box"></div>
+                </div>
+
+                <!-- 創建文章 -->
+                <div id="test-article-create" class="test-section">
+                    <h2>創建文章 API</h2>
+                    <div class="auth-info">
+                        <strong>🔒 需要認證</strong>
+                        請先登入以獲取 access_token
+                    </div>
+                    <div class="test-form">
+                        <div class="form-row">
+                            <label>標題</label>
+                            <input type="text" id="create-title" value="測試文章">
+                        </div>
+                        <div class="form-row">
+                            <label>內容 (Markdown)</label>
+                            <textarea id="create-content"># 測試文章
+
+這是一篇測試文章的內容。</textarea>
+                        </div>
+                        <div class="form-row">
+                            <label>摘要</label>
+                            <input type="text" id="create-excerpt" value="這是測試摘要">
+                        </div>
+                        <div class="form-row">
+                            <label>狀態</label>
+                            <select id="create-status">
+                                <option value="draft">草稿</option>
+                                <option value="published">已發佈</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label>標籤 (逗號分隔)</label>
+                            <input type="text" id="create-tags" value="測試,API">
+                        </div>
+                        <button class="btn-primary" onclick="testArticleCreate()">發送請求</button>
+                    </div>
+                    <div id="result-article-create" class="result-box"></div>
+                </div>
+
+                <!-- 更新文章 -->
+                <div id="test-article-update" class="test-section">
+                    <h2>更新文章 API</h2>
+                    <div class="auth-info">
+                        <strong>🔒 需要認證</strong>
+                    </div>
+                    <div class="test-form">
+                        <div class="form-row">
+                            <label>文章 Slug</label>
+                            <input type="text" id="update-slug" value="">
+                        </div>
+                        <div class="form-row">
+                            <label>新標題</label>
+                            <input type="text" id="update-title" value="">
+                        </div>
+                        <button class="btn-primary" onclick="testArticleUpdate()">發送請求</button>
+                    </div>
+                    <div id="result-article-update" class="result-box"></div>
+                </div>
+
+                <!-- 刪除文章 -->
+                <div id="test-article-delete" class="test-section">
+                    <h2>刪除文章 API</h2>
+                    <div class="auth-info">
+                        <strong>🔒 需要認證</strong>
+                    </div>
+                    <div class="test-form">
+                        <div class="form-row">
+                            <label>文章 Slug</label>
+                            <input type="text" id="delete-slug" value="">
+                        </div>
+                        <button class="btn-primary" onclick="testArticleDelete()">發送請求</button>
+                    </div>
+                    <div id="result-article-delete" class="result-box"></div>
+                </div>
+
+                <!-- 評論列表 -->
+                <div id="test-comments-list" class="test-section">
+                    <h2>評論列表 API</h2>
+                    <div class="test-form">
+                        <div class="form-row">
+                            <label>文章 ID</label>
+                            <input type="number" id="comments-article-id" value="1">
+                        </div>
+                        <button class="btn-primary" onclick="testCommentsList()">發送請求</button>
+                    </div>
+                    <div id="result-comments-list" class="result-box"></div>
+                </div>
+
+                <!-- 發表評論 -->
+                <div id="test-comment-create" class="test-section">
+                    <h2>發表評論 API (訪客)</h2>
+                    <div class="test-form">
+                        <div class="form-row">
+                            <label>文章 ID</label>
+                            <input type="number" id="comment-article-id" value="1">
+                        </div>
+                        <div class="form-row">
+                            <label>姓名</label>
+                            <input type="text" id="comment-name" value="訪客">
+                        </div>
+                        <div class="form-row">
+                            <label>Email</label>
+                            <input type="email" id="comment-email" value="guest@example.com">
+                        </div>
+                        <div class="form-row">
+                            <label>評論內容</label>
+                            <textarea id="comment-content">這是一條測試評論</textarea>
+                        </div>
+                        <button class="btn-primary" onclick="testCommentCreate()">發送請求</button>
+                    </div>
+                    <div id="result-comment-create" class="result-box"></div>
+                </div>
+
+                <!-- 分類列表 -->
+                <div id="test-categories" class="test-section">
+                    <h2>分類列表 API</h2>
+                    <div class="test-form">
+                        <button class="btn-primary" onclick="testCategories()">發送請求</button>
+                    </div>
+                    <div id="result-categories" class="result-box"></div>
+                </div>
+
+                <!-- 標籤列表 -->
+                <div id="test-tags" class="test-section">
+                    <h2>標籤列表 API</h2>
+                    <div class="test-form">
+                        <button class="btn-primary" onclick="testTags()">發送請求</button>
+                    </div>
+                    <div id="result-tags" class="result-box"></div>
+                </div>
+
+                <!-- Token 刷新 -->
+                <div id="test-refresh" class="test-section">
+                    <h2>刷新 Token API</h2>
+                    <div class="auth-info">
+                        <strong>ℹ️ 使用 HttpOnly Cookie</strong>
+                        登入後會自動設置 refresh_token cookie
+                    </div>
+                    <div class="test-form">
+                        <button class="btn-primary" onclick="testRefresh()">發送請求</button>
+                    </div>
+                    <div id="result-refresh" class="result-box"></div>
+                </div>
+
+                <!-- 登出 -->
+                <div id="test-logout" class="test-section">
+                    <h2>登出 API</h2>
+                    <div class="test-form">
+                        <button class="btn-primary" onclick="testLogout()">發送請求</button>
+                    </div>
+                    <div id="result-logout" class="result-box"></div>
+                </div>
+
+                <!-- 圖片上傳 -->
+                <div id="test-upload" class="test-section">
+                    <h2>圖片上傳 API</h2>
+                    <div class="auth-info">
+                        <strong>🔒 需要認證</strong>
+                        使用 /api/posts 端點上傳 (Weibo 共用)
+                    </div>
+                    <div class="test-form">
+                        <div class="form-row">
+                            <label>選擇圖片</label>
+                            <input type="file" id="upload-file" accept="image/*">
+                        </div>
+                        <button class="btn-primary" onclick="testUpload()">發送請求</button>
+                    </div>
+                    <div id="result-upload" class="result-box"></div>
+                </div>
+
+                <!-- 審核評論 -->
+                <div id="test-comment-approve" class="test-section">
+                    <h2>審核評論 API</h2>
+                    <div class="auth-info">
+                        <strong>🔒 需要認證</strong>
+                    </div>
+                    <div class="test-form">
+                        <div class="form-row">
+                            <label>評論 ID</label>
+                            <input type="number" id="approve-id" value="">
+                        </div>
+                        <div class="form-row">
+                            <label>狀態</label>
+                            <select id="approve-status">
+                                <option value="approved">通過</option>
+                                <option value="rejected">拒絕</option>
+                            </select>
+                        </div>
+                        <button class="btn-primary" onclick="testCommentApprove()">發送請求</button>
+                    </div>
+                    <div id="result-comment-approve" class="result-box"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = 'https://pyqapi.3331322.xyz';
+        let accessToken = localStorage.getItem('access_token') || '';
+
+        function showTest(testId) {
+            // 隱藏所有測試區塊
+            document.querySelectorAll('.test-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.test-btn').forEach(el => el.classList.remove('active'));
+
+            // 顯示選中的測試
+            document.getElementById('test-' + testId).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function displayResult(resultId, data, success = true) {
+            const el = document.getElementById('result-' + resultId);
+            const statusBadge = success ?
+                '<span class="status-badge status-success">✓ 成功</span>' :
+                '<span class="status-badge status-error">✗ 失敗</span>';
+
+            el.innerHTML = `
+                <div style="margin-bottom: 10px;">
+                    <strong>響應結果 ${statusBadge}</strong>
+                </div>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+        }
+
+        // 登入
+        async function testLogin() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await response.json();
+
+                if (data.success && data.data.access_token) {
+                    accessToken = data.data.access_token;
+                    localStorage.setItem('access_token', accessToken);
+                }
+
+                displayResult('login', data, response.ok);
+            } catch (error) {
+                displayResult('login', { error: error.message }, false);
+            }
+        }
+
+        // 文章列表
+        async function testArticlesList() {
+            const status = document.getElementById('articles-status').value;
+            const limit = document.getElementById('articles-limit').value;
+
+            let url = `${BASE_URL}/api/blog/articles?limit=${limit}`;
+            if (status) url += `&status=${status}`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                displayResult('articles-list', data, response.ok);
+            } catch (error) {
+                displayResult('articles-list', { error: error.message }, false);
+            }
+        }
+
+        // 文章詳情
+        async function testArticleDetail() {
+            const slug = document.getElementById('article-slug').value;
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/blog/articles/${slug}`);
+                const data = await response.json();
+                displayResult('article-detail', data, response.ok);
+            } catch (error) {
+                displayResult('article-detail', { error: error.message }, false);
+            }
+        }
+
+        // 創建文章
+        async function testArticleCreate() {
+            const title = document.getElementById('create-title').value;
+            const content = document.getElementById('create-content').value;
+            const excerpt = document.getElementById('create-excerpt').value;
+            const status = document.getElementById('create-status').value;
+            const tags = document.getElementById('create-tags').value.split(',').map(t => t.trim());
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/blog/articles`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`
+                    },
+                    body: JSON.stringify({ title, content, excerpt, status, tag_names: tags })
+                });
+                const data = await response.json();
+                displayResult('article-create', data, response.ok);
+            } catch (error) {
+                displayResult('article-create', { error: error.message }, false);
+            }
+        }
+
+        // 更新文章
+        async function testArticleUpdate() {
+            const slug = document.getElementById('update-slug').value;
+            const title = document.getElementById('update-title').value;
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/blog/articles/${slug}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`
+                    },
+                    body: JSON.stringify({ title })
+                });
+                const data = await response.json();
+                displayResult('article-update', data, response.ok);
+            } catch (error) {
+                displayResult('article-update', { error: error.message }, false);
+            }
+        }
+
+        // 刪除文章
+        async function testArticleDelete() {
+            const slug = document.getElementById('delete-slug').value;
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/blog/articles/${slug}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+                const data = await response.json();
+                displayResult('article-delete', data, response.ok);
+            } catch (error) {
+                displayResult('article-delete', { error: error.message }, false);
+            }
+        }
+
+        // 評論列表
+        async function testCommentsList() {
+            const articleId = document.getElementById('comments-article-id').value;
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/blog/articles/${articleId}/comments`);
+                const data = await response.json();
+                displayResult('comments-list', data, response.ok);
+            } catch (error) {
+                displayResult('comments-list', { error: error.message }, false);
+            }
+        }
+
+        // 發表評論
+        async function testCommentCreate() {
+            const articleId = document.getElementById('comment-article-id').value;
+            const name = document.getElementById('comment-name').value;
+            const email = document.getElementById('comment-email').value;
+            const content = document.getElementById('comment-content').value;
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/blog/articles/${articleId}/comments`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ author_name: name, author_email: email, content })
+                });
+                const data = await response.json();
+                displayResult('comment-create', data, response.ok);
+            } catch (error) {
+                displayResult('comment-create', { error: error.message }, false);
+            }
+        }
+
+        // 審核評論
+        async function testCommentApprove() {
+            const id = document.getElementById('approve-id').value;
+            const status = document.getElementById('approve-status').value;
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/blog/comments/${id}/moderate`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`
+                    },
+                    body: JSON.stringify({ status })
+                });
+                const data = await response.json();
+                displayResult('comment-approve', data, response.ok);
+            } catch (error) {
+                displayResult('comment-approve', { error: error.message }, false);
+            }
+        }
+
+        // 分類列表
+        async function testCategories() {
+            try {
+                const response = await fetch(`${BASE_URL}/api/blog/categories`);
+                const data = await response.json();
+                displayResult('categories', data, response.ok);
+            } catch (error) {
+                displayResult('categories', { error: error.message }, false);
+            }
+        }
+
+        // 標籤列表
+        async function testTags() {
+            try {
+                const response = await fetch(`${BASE_URL}/api/blog/tags`);
+                const data = await response.json();
+                displayResult('tags', data, response.ok);
+            } catch (error) {
+                displayResult('tags', { error: error.message }, false);
+            }
+        }
+
+        // 刷新 Token
+        async function testRefresh() {
+            try {
+                const response = await fetch(`${BASE_URL}/api/token/refresh`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                const data = await response.json();
+
+                if (data.success && data.data.access_token) {
+                    accessToken = data.data.access_token;
+                    localStorage.setItem('access_token', accessToken);
+                }
+
+                displayResult('refresh', data, response.ok);
+            } catch (error) {
+                displayResult('refresh', { error: error.message }, false);
+            }
+        }
+
+        // 登出
+        async function testLogout() {
+            try {
+                const response = await fetch(`${BASE_URL}/api/logout`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    },
+                    credentials: 'include'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    accessToken = '';
+                    localStorage.removeItem('access_token');
+                }
+
+                displayResult('logout', data, response.ok);
+            } catch (error) {
+                displayResult('logout', { error: error.message }, false);
+            }
+        }
+
+        // 圖片上傳
+        async function testUpload() {
+            const fileInput = document.getElementById('upload-file');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert('請選擇圖片');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('content', 'Cover upload');
+            formData.append('visibility', 'private');
+            formData.append('images[]', file);
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/posts`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${accessToken}` },
+                    body: formData
+                });
+                const data = await response.json();
+                displayResult('upload', data, response.ok);
+            } catch (error) {
+                displayResult('upload', { error: error.message }, false);
+            }
+        }
+
+        // 頁面載入時顯示當前 token 狀態
+        window.addEventListener('DOMContentLoaded', () => {
+            if (accessToken) {
+                console.log('已保存 Access Token:', accessToken);
+            } else {
+                console.log('無 Access Token，請先登入');
+            }
+        });
+    </script>
+</body>
+
+</html>
