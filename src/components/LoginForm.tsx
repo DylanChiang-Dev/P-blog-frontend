@@ -17,8 +17,12 @@ export default function LoginForm() {
             const { data } = await api.post('/api/login', { email, password });
 
             if (data.success) {
+                // Store in localStorage for client-side
                 localStorage.setItem('access_token', data.data.access_token);
                 localStorage.setItem('user', JSON.stringify(data.data.user));
+
+                // Store in cookie for server-side auth (15 minutes to match token expiry)
+                document.cookie = `access_token=${data.data.access_token}; path=/; max-age=${60 * 15}`; // 15 minutes
 
                 $auth.set({
                     isAuthenticated: true,

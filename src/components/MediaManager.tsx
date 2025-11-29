@@ -19,20 +19,18 @@ export default function MediaManager() {
 
     const fetchMedia = async () => {
         try {
-            // Assuming GET /api/media exists. If not, this might fail or return 404.
-            // We'll handle it gracefully.
+            // Silently check if media API exists
             const { data } = await api.get('/api/media?limit=50');
             if (data.success) {
                 setMedia(data.data.items || data.data);
             }
         } catch (error: any) {
-            // If 404, it means the endpoint doesn't exist yet, which is expected for now.
-            // We just suppress the error to avoid console noise.
-            if (error.response && error.response.status === 404) {
-                // Silently fail for 404
+            // Media API not implemented yet - fail silently
+            if (error.response?.status === 404) {
                 setMedia([]);
             } else {
-                console.warn('Failed to fetch media', error);
+                // Only log unexpected errors
+                console.warn('Failed to fetch media:', error.message);
             }
         } finally {
             setLoading(false);
@@ -45,30 +43,27 @@ export default function MediaManager() {
 
         setUploading(true);
         const formData = new FormData();
-        // Matching the structure used in ArticleEditor
-        formData.append('content', 'Media Upload');
-        formData.append('visibility', 'private');
 
         for (let i = 0; i < files.length; i++) {
-            formData.append('images[]', files[i]);
+            formData.append('files[]', files[i]);
         }
 
         try {
-            // Using the same endpoint as ArticleEditor for now
-            const { data } = await api.post('/api/posts', formData, {
+            // Use the new Media API endpoint
+            const { data } = await api.post('/api/media', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
 
-            if (data.success && data.data.images) {
+            if (data.success && data.data.items) {
                 // Add new images to the list
-                const newImages = data.data.images.map((img: any, index: number) => ({
-                    id: Date.now() + index, // Temp ID if not provided
+                const newImages = data.data.items.map((img: any) => ({
+                    id: img.id,
                     url: img.url,
-                    filename: 'Uploaded Image',
-                    created_at: new Date().toISOString()
+                    filename: img.filename,
+                    created_at: img.created_at
                 }));
                 setMedia([...newImages, ...media]);
-                alert('上傳成功！');
+                alert(`成功上傳 ${newImages.length} 張圖片！`);
             }
         } catch (error) {
             console.error('Upload failed', error);
@@ -87,12 +82,14 @@ export default function MediaManager() {
 
     const handleDelete = async (id: number) => {
         if (!confirm('確定要刪除這張圖片嗎？')) return;
-        // Assuming DELETE /api/media/:id or similar
+
         try {
             await api.delete(`/api/media/${id}`);
             setMedia(media.filter(m => m.id !== id));
+            alert('刪除成功！');
         } catch (error) {
-            alert('刪除失敗 (後端可能尚未支持)');
+            console.error('Delete failed', error);
+            alert('刪除失敗');
         }
     };
 

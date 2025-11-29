@@ -7,6 +7,7 @@ import { logout } from '../stores/auth';
 import { api } from '../lib/api';
 
 export default function AdminDashboard() {
+    const [activeTab, setActiveTab] = useState<'articles' | 'comments' | 'media'>('articles');
     const [stats, setStats] = useState({
         totalArticles: 0,
         totalComments: 0,
@@ -20,33 +21,16 @@ export default function AdminDashboard() {
 
     const fetchStats = async () => {
         try {
-            const [publishedRes, draftRes] = await Promise.all([
-                api.get('/api/blog/articles?limit=50&status=published'),
-                api.get('/api/blog/articles?limit=50&status=draft')
-            ]);
+            // Fetch articles with minimal data to get total count from pagination
+            const articlesRes = await api.get('/api/blog/articles?limit=1');
 
-            const allArticles = [
-                ...(publishedRes.data.success ? publishedRes.data.data.items : []),
-                ...(draftRes.data.success ? draftRes.data.data.items : [])
-            ];
-
-            const totalViews = allArticles.reduce((sum, article) => sum + (article.view_count || 0), 0);
-
-            // Fetch pending comments count
-            let pendingComments = 0;
-            try {
-                const commentsRes = await api.get('/api/blog/comments/pending');
-                if (commentsRes.data.success) {
-                    pendingComments = (commentsRes.data.data.items || commentsRes.data.data || []).length;
-                }
-            } catch (e) {
-                console.warn('Failed to fetch comments count');
-            }
+            // Fetch pending comments
+            const commentsRes = await api.get('/api/blog/comments/pending');
 
             setStats({
-                totalArticles: allArticles.length,
-                totalComments: pendingComments,
-                totalViews: totalViews,
+                totalArticles: articlesRes.data.data?.pagination?.total || 0,
+                totalComments: commentsRes.data.data?.length || 0,
+                totalViews: 0, // This would need a dedicated API endpoint
                 loading: false
             });
         } catch (error) {
@@ -56,10 +40,11 @@ export default function AdminDashboard() {
     };
 
     const handleLogout = () => {
-        if (confirm('確定要登出嗎？')) {
-            logout();
-            window.location.href = '/admin/login';
-        }
+        console.log('[AdminDashboard] Logout button clicked');
+        console.log('[AdminDashboard] Calling logout()...');
+        logout();
+        console.log('[AdminDashboard] Logout called');
+        // logout() function will handle the redirect
     };
 
     return (
@@ -98,21 +83,29 @@ export default function AdminDashboard() {
                 </header>
 
                 {/* Main Content Stack */}
-                <main className="space-y-16 animate-fade-in">
-                    {/* Article Management Section */}
-                    <section>
-                        <ArticleManager />
-                    </section>
+                <main className="space-y-8 animate-fade-in">
+                    {/* Tab Navigation */}
+                    <div className="flex gap-2 border-b border-gray-200 dark:border-gray-800 overflow-x-auto pb-2">
+                        {['articles', 'media', 'comments'].map(tab => (
+                            <button
+                                key={tab}
+                                onClick={() => setActiveTab(tab as 'articles' | 'comments' | 'media')}
+                                className={`px-6 py-3 font-bold text-sm rounded-t-2xl transition-all whitespace-nowrap ${activeTab === tab
+                                    ? 'bg-black dark:bg-white text-white dark:text-black'
+                                    : 'text-gray-500 hover:text-black dark:hover:text-white'
+                                    }`}
+                            >
+                                {tab === 'articles' && '📝 文章列表'}
+                                {tab === 'media' && '📷 媒體庫'}
+                                {tab === 'comments' && '💬 留言管理'}
+                            </button>
+                        ))}
+                    </div>
 
-                    {/* Comment Management Section */}
-                    <section className="pt-8 border-t border-gray-200 dark:border-gray-800">
-                        <CommentModeration />
-                    </section>
-
-                    {/* Media Management Section */}
-                    <section className="pt-8 border-t border-gray-200 dark:border-gray-800">
-                        <MediaManager />
-                    </section>
+                    {/* Tab Content */}
+                    {activeTab === 'articles' && <ArticleManager />}
+                    {activeTab === 'media' && <MediaManager />}
+                    {activeTab === 'comments' && <CommentModeration />}
                 </main>
             </div>
         </div>

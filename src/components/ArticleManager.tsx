@@ -13,25 +13,19 @@ export default function ArticleManager() {
     const fetchArticles = async () => {
         setLoading(true);
         try {
-            // Fetch both published and draft articles for admin
-            const [publishedRes, draftRes] = await Promise.all([
-                api.get('/api/blog/articles?limit=50&status=published'),
-                api.get('/api/blog/articles?limit=50&status=draft')
-            ]);
+            // Backend now returns articles sorted by published_at DESC
+            const response = await api.get('/api/blog/articles?limit=200');
 
-            const allArticles = [
-                ...(publishedRes.data.success ? publishedRes.data.data.items : []),
-                ...(draftRes.data.success ? draftRes.data.data.items : [])
-            ];
+            if (response.data.success) {
+                const allArticles = response.data.data.items as Article[];
+                // Deduplicate by ID to avoid React key warnings
+                const uniqueArticles = Array.from(
+                    new Map(allArticles.map((item: Article) => [item.id, item])).values()
+                );
 
-            // Deduplicate by ID to avoid React key warnings
-            const uniqueArticles = Array.from(new Map(allArticles.map(item => [item.id, item])).values());
-
-            // Sort by created_at descending
-            uniqueArticles.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-            console.log('[ArticleManager] Fetched articles:', uniqueArticles.length);
-            setArticles(uniqueArticles);
+                console.log('[ArticleManager] Fetched articles:', uniqueArticles.length);
+                setArticles(uniqueArticles);
+            }
         } catch (error) {
             console.error('[ArticleManager] Failed to fetch articles', error);
         } finally {
@@ -82,7 +76,10 @@ export default function ArticleManager() {
                         articles.map((article) => (
                             <div
                                 key={article.id}
-                                onClick={() => window.location.href = `/admin/editor/${article.id}`}
+                                onClick={() => {
+                                    // Use native navigation to preserve cookies
+                                    window.location.assign(`/admin/editor/${article.id}`);
+                                }}
                                 className="group bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-[1.5rem] p-4 flex items-center gap-6 hover:bg-white/60 dark:hover:bg-white/10 transition-all hover:scale-[1.01] hover:shadow-xl cursor-pointer"
                             >
                                 {/* Status Dot */}
@@ -109,17 +106,35 @@ export default function ArticleManager() {
 
                                 {/* Actions */}
                                 <div className="flex items-center gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                                    {/* Preview Button */}
+                                    <a
+                                        href={`/posts/${article.id}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-full transition-colors"
+                                        title="預覽"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                    </a>
+
+                                    {/* Edit Button */}
                                     <button
                                         type="button"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            window.location.href = `/admin/editor/${article.id}`;
+                                            window.location.assign(`/admin/editor/${article.id}`);
                                         }}
                                         className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full transition-colors"
                                         title="編輯"
                                     >
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                     </button>
+
+                                    {/* Delete Button */}
                                     <button
                                         type="button"
                                         onClick={(e) => handleDeleteClick(e, article.id)}
@@ -134,6 +149,7 @@ export default function ArticleManager() {
                     )}
                 </div>
             )}
+
 
             {/* Delete Confirmation Modal */}
             {deleteTargetId && (

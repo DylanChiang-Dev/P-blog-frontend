@@ -48,9 +48,22 @@ export async function checkAuth() {
 }
 
 export function logout() {
+    console.log('[Auth] Logout function started');
+
     api.post('/api/logout').catch(console.error); // Fire and forget
+    console.log('[Auth] API logout called');
+
     localStorage.removeItem('access_token');
     localStorage.removeItem('user');
+    console.log('[Auth] LocalStorage cleared');
+
+    // Clear cookie
+    document.cookie = 'access_token=; path=/; max-age=0';
+    console.log('[Auth] Cookie cleared');
+
     $auth.set({ isAuthenticated: false, user: null, loading: false });
+    console.log('[Auth] Auth state updated');
+
+    console.log('[Auth] Redirecting to homepage...');
     window.location.href = '/';
 }

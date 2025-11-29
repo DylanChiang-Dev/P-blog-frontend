@@ -1,10 +1,18 @@
 ---
+export const prerender = false;
+
 import AdminLayout from "../../../layouts/AdminLayout.astro";
 import ArticleEditor from "../../../components/ArticleEditor";
+import { checkServerAuth } from "../../../lib/auth-server";
 
 const { id } = Astro.params;
+
+const auth = await checkServerAuth(Astro.cookies);
+if (!auth.authenticated) {
+  return Astro.redirect("/admin/login");
+}
 ---
 
 <AdminLayout title="Edit Article">
-  <ArticleEditor client:only="react" id={id} />
+  <ArticleEditor client:load id={id} />
 </AdminLayout>

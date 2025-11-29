@@ -10,11 +10,15 @@ let articles: Article[] = [];
 let error = null;
 
 try {
+  // Backend now supports proper sorting and pagination
   const response = await api.get(
-    "/api/blog/articles?status=published&limit=100",
+    "/api/blog/articles?status=published&limit=200",
   );
   if (response.data.success) {
     articles = response.data.data.items;
+    // Filter out private articles - only show public articles on homepage
+    articles = articles.filter((article) => article.visibility === "public");
+    // No need to sort - backend returns articles sorted by published_at DESC
   }
 } catch (e) {
   console.warn("Backend unavailable", e);

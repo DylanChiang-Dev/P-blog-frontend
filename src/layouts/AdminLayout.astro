@@ -39,6 +39,17 @@ const { title } = Astro.props;
 	<body
 		class="bg-gray-50 dark:bg-black text-foreground antialiased min-h-screen"
 	>
+		<!-- Auth Loading Overlay - Hide content until authenticated -->
+		<div
+			id="auth-check-overlay"
+			class="fixed inset-0 bg-white dark:bg-black z-50 flex items-center justify-center"
+		>
+			<div
+				class="animate-spin rounded-full h-12 w-12 border-b-2 border-zinc-900 dark:border-white"
+			>
+			</div>
+		</div>
+
 		<main class="min-h-screen">
 			<slot />
 		</main>
@@ -46,20 +57,21 @@ const { title } = Astro.props;
 		<script>
 			import { checkAuth, logout, $auth } from "../stores/auth";
 
-			// Client-side auth check
+			console.log("[AdminLayout] Script loaded");
+
+			// Client-side auth check (only to hide loading overlay)
+			// Server-side auth already handles redirects, so we don't redirect here
 			checkAuth().then(() => {
 				const auth = $auth.get();
-				if (!auth.isAuthenticated) {
-					// Redirect to login if not authenticated
-					window.location.href = "/admin/login";
+				console.log("[AdminLayout] Auth check result:", auth);
+
+				// Always remove loading overlay (server-side auth handles actual security)
+				console.log("[AdminLayout] Removing loading overlay");
+				const overlay = document.getElementById("auth-check-overlay");
+				if (overlay) {
+					overlay.style.display = "none";
 				}
 			});
-
-			document
-				.getElementById("logout-btn")
-				?.addEventListener("click", () => {
-					logout();
-				});
 		</script>
 	</body>
 </html>

@@ -37,8 +37,8 @@ export default function ArticleEditor({ id }: Props) {
 
     const fetchArticle = async () => {
         try {
-            // Use the new ID-based endpoint
-            const { data } = await api.get(`/api/blog/articles/id/${id}`);
+            // Fetch article by ID using the backend endpoint
+            const { data } = await api.get(`/api/blog/articles/${id}`);
             if (data.success) {
                 const fetchedArticle = data.data;
                 setArticle(fetchedArticle);
@@ -213,11 +213,14 @@ export default function ArticleEditor({ id }: Props) {
                 const referrer = document.referrer;
                 const articleDetailPattern = /\/posts\/\d+/;
 
-                if (referrer && articleDetailPattern.test(referrer)) {
-                    // Return to the article detail page
+                // Private articles should always go to admin dashboard
+                if (article.visibility === 'private') {
+                    window.location.href = '/admin';
+                } else if (referrer && articleDetailPattern.test(referrer)) {
+                    // Return to the article detail page (only for public articles)
                     window.location.href = referrer;
                 } else if (article.id) {
-                    // If editing existing article from admin, go to its detail page
+                    // If editing existing public article from admin, go to its detail page
                     window.location.href = `/posts/${article.id}`;
                 } else {
                     // Default to admin dashboard
@@ -361,6 +364,59 @@ export default function ArticleEditor({ id }: Props) {
                                         </button>
                                     ))}
                                 </div>
+                            </div>
+
+                            {/* Visibility/Privacy Setting */}
+                            <div>
+                                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">隱私權限</label>
+                                <div className="flex bg-zinc-100 dark:bg-zinc-800/50 p-1 rounded-xl">
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            console.log('[Visibility] Clicked Public button');
+                                            setArticle({ ...article, visibility: 'public' });
+                                            console.log('[Visibility] State updated to public');
+                                        }}
+                                        className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${article.visibility === 'public'
+                                            ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-lg'
+                                            : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'
+                                            }`}
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        公開
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            console.log('[Visibility] Clicked Private button');
+                                            setArticle({ ...article, visibility: 'private' });
+                                            console.log('[Visibility] State updated to private');
+                                        }}
+                                        className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${article.visibility === 'private'
+                                            ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-lg'
+                                            : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'
+                                            }`}
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                        </svg>
+                                        私密
+                                    </button>
+                                </div>
+                                {article.visibility === 'private' && (
+                                    <p className="mt-2 text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                        </svg>
+                                        此文章僅您可見，不會出現在首頁
+                                    </p>
+                                )}
                             </div>
 
                         </div>

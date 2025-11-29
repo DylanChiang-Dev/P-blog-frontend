@@ -13,7 +13,14 @@ let article: Article | null = null;
 
 try {
   if (id) {
-    const response = await api.get(`/api/blog/articles/id/${id}`);
+    // Get token from cookies for private article access
+    const token = Astro.cookies.get("access_token")?.value;
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await api.get(`/api/blog/articles/${id}`, { headers });
     if (response.data.success) {
       article = response.data.data;
     }

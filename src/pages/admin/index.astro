@@ -1,6 +1,14 @@
 ---
-import AdminLayout from '../../layouts/AdminLayout.astro';
-import AdminDashboard from '../../components/AdminDashboard';
+export const prerender = false;
+
+import AdminLayout from "../../layouts/AdminLayout.astro";
+import AdminDashboard from "../../components/AdminDashboard";
+import { checkServerAuth } from "../../lib/auth-server";
+
+const auth = await checkServerAuth(Astro.cookies);
+if (!auth.authenticated) {
+  return Astro.redirect("/admin/login");
+}
 ---
 
 <AdminLayout title="Dashboard">
