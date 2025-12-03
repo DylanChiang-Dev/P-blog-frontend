@@ -15,37 +15,48 @@ export default function ArticleManager() {
     const fetchArticles = async () => {
         setLoading(true);
         try {
-            // Backend now returns articles sorted by published_at DESC
-            const response = await api.get('/api/blog/articles?limit=200');
+            // Fetch both published and draft articles in parallel to ensure we get everything
+            // status=all might be unreliable for non-admin users
+            const [publishedRes, draftRes] = await Promise.all([
+                api.get('/api/blog/articles?limit=200&status=published'),
+                api.get('/api/blog/articles?limit=200&status=draft')
+            ]);
 
-            if (response.data.success) {
-                const allArticles = response.data.data.items as Article[];
-                // Deduplicate by ID to avoid React key warnings
-                const uniqueArticles = Array.from(
-                    new Map(allArticles.map((item: Article) => [item.id, item])).values()
-                );
+            let allArticles: Article[] = [];
 
-                // Custom sorting: Drafts first (sorted by updated_at), then published (sorted by published_at)
-                uniqueArticles.sort((a, b) => {
-                    // If one is draft and other is not
-                    const isDraftA = !a.published_at;
-                    const isDraftB = !b.published_at;
-
-                    if (isDraftA && !isDraftB) return -1; // Drafts come first
-                    if (!isDraftA && isDraftB) return 1;
-
-                    if (isDraftA && isDraftB) {
-                        // Both are drafts: sort by updated_at DESC
-                        return new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime();
-                    }
-
-                    // Both are published: sort by published_at DESC
-                    return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
-                });
-
-                console.log('[ArticleManager] Fetched articles:', uniqueArticles.length);
-                setArticles(uniqueArticles);
+            if (publishedRes.data.success) {
+                allArticles = [...allArticles, ...publishedRes.data.data.items];
             }
+
+            if (draftRes.data.success) {
+                allArticles = [...allArticles, ...draftRes.data.data.items];
+            }
+
+            // Deduplicate by ID
+            const uniqueArticles = Array.from(
+                new Map(allArticles.map((item: Article) => [item.id, item])).values()
+            );
+
+            // Custom sorting: Drafts first (sorted by updated_at), then published (sorted by published_at)
+            uniqueArticles.sort((a, b) => {
+                // If one is draft and other is not
+                const isDraftA = !a.published_at;
+                const isDraftB = !b.published_at;
+
+                if (isDraftA && !isDraftB) return -1; // Drafts come first
+                if (!isDraftA && isDraftB) return 1;
+
+                if (isDraftA && isDraftB) {
+                    // Both are drafts: sort by updated_at DESC
+                    return new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime();
+                }
+
+                // Both are published: sort by published_at DESC
+                return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
+            });
+
+            console.log('[ArticleManager] Fetched articles:', uniqueArticles.length);
+            setArticles(uniqueArticles);
         } catch (error) {
             console.error('[ArticleManager] Failed to fetch articles', error);
         } finally {
