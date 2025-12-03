@@ -87,7 +87,7 @@ const contentHtml = await marked.parse(
           }
         </time>
         <span>•</span>
-        <span>{article.view_count} 次閱讀</span>
+        <span id="view-count">{article.view_count} 次閱讀</span>
       </div>
     </header>
 
@@ -96,3 +96,28 @@ const contentHtml = await marked.parse(
 
   <CommentsSection client:visible articleId={article.id} />
 </Layout>
+
+<script define:vars={{ articleId: id, apiUrl: import.meta.env.PUBLIC_API_URL }}>
+  // Increment view count
+  (async () => {
+    try {
+      const response = await fetch(
+        `${apiUrl}/api/blog/articles/${articleId}/view`,
+        {
+          method: "POST",
+        },
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        const viewCountEl = document.getElementById("view-count");
+        if (viewCountEl) {
+          viewCountEl.textContent = `${data.data.view_count} 次閱讀`;
+        }
+      }
+    } catch (error) {
+      console.error("Failed to increment view count:", error);
+    }
+  })();
+</script>
