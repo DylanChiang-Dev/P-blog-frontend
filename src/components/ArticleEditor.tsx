@@ -88,6 +88,7 @@ export default function ArticleEditor({ id }: Props) {
 
     const [showTableModal, setShowTableModal] = useState(false);
     const [showMediaSelector, setShowMediaSelector] = useState(false);
+    const [selectingCover, setSelectingCover] = useState(false);
     const [dragOver, setDragOver] = useState(false);
     const [droppedFiles, setDroppedFiles] = useState<File[] | null>(null);
     const [tableRows, setTableRows] = useState(3);
@@ -186,6 +187,13 @@ export default function ArticleEditor({ id }: Props) {
     };
 
     const handleMediaSelect = (url: string) => {
+        if (selectingCover) {
+            setArticle(prev => ({ ...prev, cover_image: url }));
+            setShowMediaSelector(false);
+            setSelectingCover(false);
+            return;
+        }
+
         const { start, end } = selectionRef.current;
         const textarea = document.getElementById('content-textarea') as HTMLTextAreaElement;
         const savedScrollTop = textarea ? textarea.scrollTop : 0;
@@ -614,11 +622,12 @@ export default function ArticleEditor({ id }: Props) {
                                                 <span className="text-sm text-zinc-500">點擊上傳封面</span>
                                             </div>
                                         )}
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={handleImageUpload}
-                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                        <div
+                                            className="absolute inset-0 w-full h-full cursor-pointer"
+                                            onClick={() => {
+                                                setSelectingCover(true);
+                                                setShowMediaSelector(true);
+                                            }}
                                         />
                                     </div>
                                 </div>
@@ -679,7 +688,10 @@ export default function ArticleEditor({ id }: Props) {
             {/* Media Selector Modal */}
             <MediaSelector
                 isOpen={showMediaSelector}
-                onClose={() => setShowMediaSelector(false)}
+                onClose={() => {
+                    setShowMediaSelector(false);
+                    setSelectingCover(false);
+                }}
                 onSelect={handleMediaSelect}
             />
 
