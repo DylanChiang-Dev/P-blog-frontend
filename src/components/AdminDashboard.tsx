@@ -22,15 +22,20 @@ export default function AdminDashboard() {
     const fetchStats = async () => {
         try {
             // Fetch articles with minimal data to get total count from pagination
-            const articlesRes = await api.get('/api/blog/articles?limit=1');
+            // We fetch a larger limit to calculate total views across all articles
+            const articlesRes = await api.get('/api/blog/articles?limit=1000');
 
             // Fetch pending comments
             const commentsRes = await api.get('/api/blog/comments/pending');
 
+            const articles = articlesRes.data.data?.items || [];
+            // Calculate total views by summing view_count of all articles
+            const totalViews = articles.reduce((sum: number, article: any) => sum + (article.view_count || 0), 0);
+
             setStats({
                 totalArticles: articlesRes.data.data?.pagination?.total || 0,
                 totalComments: commentsRes.data.data?.length || 0,
-                totalViews: 0, // This would need a dedicated API endpoint
+                totalViews: totalViews,
                 loading: false
             });
         } catch (error) {
