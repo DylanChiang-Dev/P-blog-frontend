@@ -25,6 +25,13 @@ export default function ArticleManager() {
                     new Map(allArticles.map((item: Article) => [item.id, item])).values()
                 );
 
+                // Sort by updated_at DESC to show recently edited articles (including drafts) at the top
+                uniqueArticles.sort((a, b) => {
+                    const dateA = new Date(a.updated_at || a.created_at).getTime();
+                    const dateB = new Date(b.updated_at || b.created_at).getTime();
+                    return dateB - dateA;
+                });
+
                 console.log('[ArticleManager] Fetched articles:', uniqueArticles.length);
                 setArticles(uniqueArticles);
             }

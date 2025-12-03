@@ -338,6 +338,11 @@ export default function ArticleEditor({ id }: Props) {
             return;
         }
 
+        if (!article.content?.trim()) {
+            toast.error('請輸入文章內容');
+            return;
+        }
+
         console.log('[ArticleEditor] handleSubmit called');
         console.log('[ArticleEditor] Article state:', article);
         setSaving(true);
@@ -359,10 +364,8 @@ export default function ArticleEditor({ id }: Props) {
 
             let response;
             if (article.id) {
-                console.log('[ArticleEditor] Updating existing article:', article.id);
                 response = await api.put(`/api/blog/articles/${article.id}`, payload);
             } else {
-                console.log('[ArticleEditor] Creating new article');
                 response = await api.post('/api/blog/articles', payload);
             }
 
@@ -371,24 +374,28 @@ export default function ArticleEditor({ id }: Props) {
             // Only redirect if save was successful
             if (response.data.success) {
                 console.log('[ArticleEditor] Save successful, redirecting...');
+                toast.success('文章已成功發佈！');
 
                 // Check if we came from an article detail page
                 const referrer = document.referrer;
                 const articleDetailPattern = /\/posts\/\d+/;
 
-                // Private articles should always go to admin dashboard
-                if (article.visibility === 'private') {
-                    window.location.href = '/admin';
-                } else if (referrer && articleDetailPattern.test(referrer)) {
-                    // Return to the article detail page (only for public articles)
-                    window.location.href = referrer;
-                } else if (article.id) {
-                    // If editing existing public article from admin, go to its detail page
-                    window.location.href = `/posts/${article.id}`;
-                } else {
-                    // Default to admin dashboard
-                    window.location.href = '/admin';
-                }
+                // Delay redirect slightly to see toast
+                setTimeout(() => {
+                    // Private articles should always go to admin dashboard
+                    if (article.visibility === 'private') {
+                        window.location.href = '/admin';
+                    } else if (referrer && articleDetailPattern.test(referrer)) {
+                        // Return to the article detail page (only for public articles)
+                        window.location.href = referrer;
+                    } else if (article.id) {
+                        // If editing existing public article from admin, go to its detail page
+                        window.location.href = `/posts/${article.id}`;
+                    } else {
+                        // Default to admin dashboard
+                        window.location.href = '/admin';
+                    }
+                }, 1000);
             } else {
                 throw new Error(response.data.message || 'Save failed');
             }
