@@ -347,6 +347,14 @@ export default function ArticleEditor({ id }: Props) {
                 ...article
             };
 
+            // Explicitly set published_at if publishing for the first time
+            if (payload.status === 'published' && !payload.published_at) {
+                // Format as YYYY-MM-DD HH:mm:ss for MySQL compatibility
+                const now = new Date();
+                const formatted = now.toISOString().slice(0, 19).replace('T', ' ');
+                payload.published_at = formatted;
+            }
+
             console.log('[ArticleEditor] Sending payload:', payload);
 
             let response;
