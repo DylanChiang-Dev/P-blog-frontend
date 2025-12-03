@@ -55,9 +55,18 @@ const { title } = Astro.props;
 		</main>
 
 		<script>
+			import React from "react";
 			import { checkAuth, logout, $auth } from "../stores/auth";
+			import ToastContainer from "../components/ToastContainer";
+			import { createRoot } from "react-dom/client";
 
 			console.log("[AdminLayout] Script loaded");
+
+			// Mount ToastContainer
+			const container = document.createElement("div");
+			document.body.appendChild(container);
+			const root = createRoot(container);
+			root.render(React.createElement(ToastContainer));
 
 			// Client-side auth check (only to hide loading overlay)
 			// Server-side auth already handles redirects, so we don't redirect here

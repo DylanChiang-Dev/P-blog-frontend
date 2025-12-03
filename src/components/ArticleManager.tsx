@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import type { Article } from '../types';
+import ConfirmDialog from './ConfirmDialog';
+import { toast } from '../stores/toast';
 
 export default function ArticleManager() {
     const [articles, setArticles] = useState<Article[]>([]);
@@ -43,7 +45,7 @@ export default function ArticleManager() {
             setArticles(articles.filter(a => a.id !== deleteTargetId));
             setDeleteTargetId(null);
         } catch (error) {
-            alert('刪除文章失敗');
+            toast.error('刪除文章失敗');
         }
     };
 
@@ -141,31 +143,16 @@ export default function ArticleManager() {
 
 
             {/* Delete Confirmation Modal */}
-            {deleteTargetId && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
-                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setDeleteTargetId(null)}></div>
-                    <div className="relative bg-white dark:bg-zinc-900 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-gray-200 dark:border-zinc-800">
-                        <h3 className="text-lg font-bold mb-2 text-gray-900 dark:text-white">確認刪除</h3>
-                        <p className="text-gray-500 dark:text-gray-400 mb-6">
-                            確定要刪除這篇文章嗎？此操作無法撤銷。
-                        </p>
-                        <div className="flex justify-end gap-3">
-                            <button
-                                onClick={() => setDeleteTargetId(null)}
-                                className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors font-medium"
-                            >
-                                取消
-                            </button>
-                            <button
-                                onClick={confirmDelete}
-                                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors font-medium shadow-lg shadow-red-500/20"
-                            >
-                                確認刪除
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ConfirmDialog
+                isOpen={!!deleteTargetId}
+                title="確認刪除"
+                message="確定要刪除這篇文章嗎？此操作無法撤銷。"
+                confirmText="確認刪除"
+                cancelText="取消"
+                onConfirm={confirmDelete}
+                onCancel={() => setDeleteTargetId(null)}
+                isDestructive={true}
+            />
         </div>
     );
 }

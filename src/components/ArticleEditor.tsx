@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../lib/api';
+import { toast } from '../stores/toast';
 import ThemeToggle from './ThemeToggle';
+import MediaSelector from './MediaSelector';
+import ConfirmDialog from './ConfirmDialog';
 import type { Article } from '../types';
 
 interface Props {
@@ -48,12 +51,12 @@ export default function ArticleEditor({ id }: Props) {
 
             // Better error messages
             if (error.response?.status === 404) {
-                alert('找不到此文章（可能已被刪除）\n\n將返回文章列表');
-                window.location.href = '/admin';
+                toast.error('找不到此文章（可能已被刪除），將返回文章列表');
+                setTimeout(() => window.location.href = '/admin', 2000);
             } else if (error.code === 'ERR_NETWORK' || error.message.includes('CORS')) {
-                alert('網絡錯誤或 CORS 問題\n\n請聯繫後端開發者修復 CORS 配置');
+                toast.error('網絡錯誤或 CORS 問題，請聯繫後端開發者修復 CORS 配置');
             } else {
-                alert(`無法載入文章：${error.response?.data?.message || error.message}`);
+                toast.error(`無法載入文章：${error.response?.data?.message || error.message}`);
             }
         } finally {
             setLoading(false);
@@ -79,11 +82,14 @@ export default function ArticleEditor({ id }: Props) {
             }
         } catch (error) {
             console.error('Upload failed', error);
-            alert('Image upload failed');
+            toast.error('Image upload failed');
         }
     };
 
     const [showTableModal, setShowTableModal] = useState(false);
+    const [showMediaSelector, setShowMediaSelector] = useState(false);
+    const [dragOver, setDragOver] = useState(false);
+    const [droppedFiles, setDroppedFiles] = useState<FileList | null>(null);
     const [tableRows, setTableRows] = useState(3);
     const [tableCols, setTableCols] = useState(3);
 
@@ -150,8 +156,9 @@ export default function ArticleEditor({ id }: Props) {
                 newCursorPos = start + (selectedText ? selectedText.length + 3 : 6); // Select 'url' or move to it
                 break;
             case 'image':
-                newText = text.substring(0, start) + `![${selectedText || '圖片描述'}](url)` + text.substring(end);
-                newCursorPos = start + (selectedText ? selectedText.length + 5 : 7);
+                setShowMediaSelector(true);
+                // newText = text.substring(0, start) + `![${selectedText || '圖片描述'}](url)` + text.substring(end);
+                // newCursorPos = start + (selectedText ? selectedText.length + 5 : 7);
                 break;
             case 'code':
                 newText = text.substring(0, start) + `\`\`\`\n${selectedText || '程式碼'}\n\`\`\`` + text.substring(end);
@@ -175,11 +182,103 @@ export default function ArticleEditor({ id }: Props) {
         }, 0);
     };
 
+    const handleMediaSelect = (url: string) => {
+        const textarea = document.getElementById('content-textarea') as HTMLTextAreaElement;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = textarea.value;
+        const selectedText = text.substring(start, end);
+
+        const newText = text.substring(0, start) + `![${selectedText || '圖片描述'}](${url})` + text.substring(end);
+
+        setArticle({ ...article, content: newText });
+        setShowMediaSelector(false);
+
+        setTimeout(() => {
+            textarea.focus();
+            const newCursorPos = start + (selectedText ? selectedText.length + 4 : 6) + url.length + 1;
+            textarea.setSelectionRange(newCursorPos, newCursorPos);
+        }, 0);
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        setDragOver(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        setDragOver(false);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setDragOver(false);
+
+        const files = e.dataTransfer.files;
+        if (files && files.length > 0) {
+            // Check if they are images
+            const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+            if (imageFiles.length > 0) {
+                setDroppedFiles(files); // Store original FileList or filtered array? FileList is read-only.
+                // Actually we can just store the filtered array or the DataTransfer object if needed, 
+                // but let's just store the files we want to upload.
+                // Since setDroppedFiles expects FileList, let's just use the event's files for now and filter later or cast.
+                // Better: change state type to File[]
+            }
+        }
+    };
+
+    const confirmDropUpload = async () => {
+        if (!droppedFiles || droppedFiles.length === 0) return;
+
+        const formData = new FormData();
+        const imageFiles = Array.from(droppedFiles).filter(file => file.type.startsWith('image/'));
+
+        for (const file of imageFiles) {
+            formData.append('files[]', file);
+        }
+
+        try {
+            const { data } = await api.post('/api/media', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            if (data.success && data.data.items) {
+                const textarea = document.getElementById('content-textarea') as HTMLTextAreaElement;
+                let newText = article.content || '';
+                let insertPos = textarea ? textarea.selectionStart : newText.length;
+
+                // Insert all uploaded images
+                let insertedContent = '';
+                data.data.items.forEach((img: any) => {
+                    insertedContent += `\n![${img.filename}](${img.url})\n`;
+                });
+
+                if (textarea) {
+                    newText = newText.substring(0, insertPos) + insertedContent + newText.substring(insertPos);
+                } else {
+                    newText += insertedContent;
+                }
+
+                setArticle(prev => ({ ...prev, content: newText }));
+                toast.success(`成功上傳 ${data.data.items.length} 張圖片！`);
+            }
+        } catch (error) {
+            console.error('Upload failed', error);
+            toast.error('上傳失敗');
+        } finally {
+            setDroppedFiles(null);
+        }
+    };
+
     const handleSubmit = async (e?: React.MouseEvent<HTMLButtonElement>) => {
         e?.preventDefault();
 
         if (!article.title?.trim()) {
-            alert('請輸入文章標題');
+            toast.error('請輸入文章標題');
             return;
         }
 
@@ -232,7 +331,7 @@ export default function ArticleEditor({ id }: Props) {
         } catch (error: any) {
             console.error('[ArticleEditor] Save failed:', error);
             const errorMessage = error.response?.data?.message || error.message || 'Failed to save article';
-            alert(`保存失敗：${errorMessage}`);
+            toast.error(`保存失敗：${errorMessage}`);
             setSaving(false);
         }
     };
@@ -326,13 +425,28 @@ export default function ArticleEditor({ id }: Props) {
                                 </button>
                             ))}
                         </div>
-                        <textarea
-                            id="content-textarea"
-                            value={article.content}
-                            onChange={e => setArticle({ ...article, content: e.target.value })}
-                            className="w-full h-[calc(100vh-450px)] bg-transparent text-lg leading-relaxed text-zinc-700 dark:text-zinc-300 placeholder-zinc-400 border-none outline-none resize-none font-mono"
-                            placeholder="# 開始您的創作旅程..."
-                        />
+                        <div
+                            className={`relative rounded-2xl transition-all ${dragOver ? 'ring-4 ring-blue-500 bg-blue-50 dark:bg-blue-900/20' : ''}`}
+                            onDragOver={handleDragOver}
+                            onDragLeave={handleDragLeave}
+                            onDrop={handleDrop}
+                        >
+                            <textarea
+                                id="content-textarea"
+                                value={article.content}
+                                onChange={e => setArticle({ ...article, content: e.target.value })}
+                                className="w-full h-[calc(100vh-450px)] bg-transparent text-lg leading-relaxed text-zinc-700 dark:text-zinc-300 placeholder-zinc-400 border-none outline-none resize-none font-mono p-4"
+                                placeholder="# 開始您的創作旅程..."
+                            />
+                            {dragOver && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-blue-500/10 backdrop-blur-sm rounded-2xl pointer-events-none">
+                                    <div className="text-blue-500 font-bold text-xl flex items-center gap-2">
+                                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                                        釋放以圖片上傳
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -512,6 +626,23 @@ export default function ArticleEditor({ id }: Props) {
                     </div>
                 </div>
             )}
+            {/* Media Selector Modal */}
+            <MediaSelector
+                isOpen={showMediaSelector}
+                onClose={() => setShowMediaSelector(false)}
+                onSelect={handleMediaSelect}
+            />
+
+            {/* Drop Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={!!droppedFiles}
+                title="上傳圖片"
+                message={`確定要上傳 ${droppedFiles ? Array.from(droppedFiles).filter(f => f.type.startsWith('image/')).length : 0} 張圖片並插入文章嗎？`}
+                confirmText="上傳並插入"
+                cancelText="取消"
+                onConfirm={confirmDropUpload}
+                onCancel={() => setDroppedFiles(null)}
+            />
         </div>
     );
 }

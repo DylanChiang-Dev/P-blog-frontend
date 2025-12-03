@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api';
+import { toast } from '../stores/toast';
+import ConfirmDialog from './ConfirmDialog';
 
 interface MediaItem {
     id: number;
@@ -12,6 +14,7 @@ export default function MediaManager() {
     const [media, setMedia] = useState<MediaItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
+    const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
     useEffect(() => {
         fetchMedia();
@@ -67,7 +70,7 @@ export default function MediaManager() {
             }
         } catch (error) {
             console.error('Upload failed', error);
-            alert('上傳失敗');
+            toast.error('上傳失敗');
         } finally {
             setUploading(false);
             // Reset input
@@ -77,19 +80,25 @@ export default function MediaManager() {
 
     const handleCopy = (url: string) => {
         navigator.clipboard.writeText(`![](${url})`);
-        alert('Markdown 鏈接已複製到剪貼板！');
+        toast.success('Markdown 鏈接已複製到剪貼板！');
     };
 
-    const handleDelete = async (id: number) => {
-        if (!confirm('確定要刪除這張圖片嗎？')) return;
+    const handleDeleteClick = (id: number) => {
+        setDeleteConfirmId(id);
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteConfirmId) return;
 
         try {
-            await api.delete(`/api/media/${id}`);
-            setMedia(media.filter(m => m.id !== id));
-            alert('刪除成功！');
+            await api.delete(`/api/media/${deleteConfirmId}`);
+            setMedia(media.filter(m => m.id !== deleteConfirmId));
+            toast.success('刪除成功！');
         } catch (error) {
             console.error('Delete failed', error);
-            alert('刪除失敗');
+            toast.error('刪除失敗');
+        } finally {
+            setDeleteConfirmId(null);
         }
     };
 
@@ -151,7 +160,7 @@ export default function MediaManager() {
                                     複製鏈接
                                 </button>
                                 <button
-                                    onClick={() => handleDelete(item.id)}
+                                    onClick={() => handleDeleteClick(item.id)}
                                     className="px-4 py-2 bg-red-500 text-white text-xs font-bold rounded-xl hover:bg-red-600 shadow-lg transform hover:scale-105 transition-all"
                                 >
                                     刪除
@@ -161,6 +170,16 @@ export default function MediaManager() {
                     ))}
                 </div>
             )}
+            <ConfirmDialog
+                isOpen={!!deleteConfirmId}
+                title="刪除圖片"
+                message="確定要刪除這張圖片嗎？此操作無法撤銷。"
+                confirmText="刪除"
+                cancelText="取消"
+                onConfirm={confirmDelete}
+                onCancel={() => setDeleteConfirmId(null)}
+                isDestructive={true}
+            />
         </div>
     );
 }

@@ -49,7 +49,7 @@ export default function CommentModeration() {
             }
             setComments(comments.map(c => c.id === id ? { ...c, status } : c));
         } catch (error) {
-            alert('更新狀態失敗');
+            toast.error('更新狀態失敗');
         }
     };
 
@@ -60,7 +60,7 @@ export default function CommentModeration() {
             setComments(comments.filter(c => c.id !== deleteId));
             setDeleteId(null);
         } catch (error) {
-            alert('刪除留言失敗');
+            toast.error('刪除留言失敗');
         }
     };
 
