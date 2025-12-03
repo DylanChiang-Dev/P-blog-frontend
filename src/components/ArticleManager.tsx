@@ -25,11 +25,22 @@ export default function ArticleManager() {
                     new Map(allArticles.map((item: Article) => [item.id, item])).values()
                 );
 
-                // Sort by updated_at DESC to show recently edited articles (including drafts) at the top
+                // Custom sorting: Drafts first (sorted by updated_at), then published (sorted by published_at)
                 uniqueArticles.sort((a, b) => {
-                    const dateA = new Date(a.updated_at || a.created_at).getTime();
-                    const dateB = new Date(b.updated_at || b.created_at).getTime();
-                    return dateB - dateA;
+                    // If one is draft and other is not
+                    const isDraftA = !a.published_at;
+                    const isDraftB = !b.published_at;
+
+                    if (isDraftA && !isDraftB) return -1; // Drafts come first
+                    if (!isDraftA && isDraftB) return 1;
+
+                    if (isDraftA && isDraftB) {
+                        // Both are drafts: sort by updated_at DESC
+                        return new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime();
+                    }
+
+                    // Both are published: sort by published_at DESC
+                    return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
                 });
 
                 console.log('[ArticleManager] Fetched articles:', uniqueArticles.length);
