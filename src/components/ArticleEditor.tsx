@@ -186,31 +186,47 @@ export default function ArticleEditor({ id }: Props) {
     };
 
     const handleMediaSelect = (url: string) => {
+        const { start, end } = selectionRef.current;
+
         setArticle(prev => {
             const content = prev.content || '';
-            const { start, end } = selectionRef.current;
-
-            // If selection is invalid (e.g. 0,0 and content is not empty, but maybe user really wanted 0,0? 
-            // Usually 0,0 is fine if at start. But if we lost selection, it defaults to 0,0.
-            // Since we saved it in insertMarkdown, it should be correct relative to when button was clicked.
-
             const selectedText = content.substring(start, end);
             const newText = content.substring(0, start) + `![${selectedText || '圖片描述'}](${url})` + content.substring(end);
-
-            // Restore focus and cursor after render
-            setTimeout(() => {
-                const textarea = document.getElementById('content-textarea') as HTMLTextAreaElement;
-                if (textarea) {
-                    textarea.focus();
-                    const newCursorPos = start + (selectedText ? selectedText.length + 4 : 6) + url.length + 1;
-                    textarea.setSelectionRange(newCursorPos, newCursorPos);
-                }
-            }, 0);
-
             return { ...prev, content: newText };
         });
 
         setShowMediaSelector(false);
+
+        // Restore focus and cursor after render
+        setTimeout(() => {
+            const textarea = document.getElementById('content-textarea') as HTMLTextAreaElement;
+            if (textarea) {
+                textarea.focus();
+                // Calculate new cursor position based on inserted text length
+                // ![text](url) -> 2 + text + 2 + url + 1 = 5 + text + url
+                // If text is empty, we use '圖片描述' (4 chars) -> 2 + 4 + 2 + url + 1 = 9 + url
+
+                // We need to know what text was actually inserted.
+                // Since we can't easily access the 'prev' state here without another read,
+                // we can re-calculate based on what we know.
+                // Or better, we can read the current value from textarea since it should be updated by now (in setTimeout).
+
+                // Let's use the same logic as inside setArticle for consistency.
+                // We assume the content at 'start' was what we expected.
+
+                // Wait, we can't know if 'selectedText' was empty or not easily without reading content again.
+                // But we have 'start' and 'end' from ref.
+                const selectionLen = end - start;
+                const insertedTextLen = selectionLen > 0 ? selectionLen : 4; // '圖片描述' is 4 chars
+
+                // Length of inserted markdown: `![` (2) + text (len) + `](` (2) + url (len) + `)` (1)
+                // Total length = 5 + textLen + urlLen
+                const markdownLen = 5 + insertedTextLen + url.length;
+
+                const newCursorPos = start + markdownLen;
+                textarea.setSelectionRange(newCursorPos, newCursorPos);
+            }
+        }, 0);
     };
 
     const handleDragOver = (e: React.DragEvent) => {

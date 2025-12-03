@@ -15,6 +15,8 @@ export default function MediaManager() {
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+    const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
     useEffect(() => {
         fetchMedia();
@@ -102,13 +104,63 @@ export default function MediaManager() {
         }
     };
 
+    const toggleSelection = (id: number) => {
+        const newSelected = new Set(selectedIds);
+        if (newSelected.has(id)) {
+            newSelected.delete(id);
+        } else {
+            newSelected.add(id);
+        }
+        setSelectedIds(newSelected);
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedIds.size === 0) return;
+
+        try {
+            const ids = Array.from(selectedIds);
+            let successCount = 0;
+
+            for (const id of ids) {
+                try {
+                    await api.delete(`/api/media/${id}`);
+                    successCount++;
+                } catch (err) {
+                    console.error(`Failed to delete media ${id}`, err);
+                }
+            }
+
+            if (successCount > 0) {
+                setMedia(media.filter(m => !selectedIds.has(m.id)));
+                setSelectedIds(new Set());
+                toast.success(`成功刪除 ${successCount} 張圖片`);
+            } else {
+                toast.error('刪除失敗');
+            }
+        } catch (error) {
+            console.error('Bulk delete failed', error);
+            toast.error('批量刪除時發生錯誤');
+        } finally {
+            setShowBulkDeleteConfirm(false);
+        }
+    };
+
     if (loading) return <div className="p-8 text-center">載入媒體庫中...</div>;
 
     return (
         <div className="space-y-6 animate-fade-in">
             <div className="flex justify-between items-center bg-white/70 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/10 p-4 rounded-3xl shadow-sm">
                 <h2 className="text-xl font-bold px-2">媒體庫</h2>
-                <div>
+                <h2 className="text-xl font-bold px-2">媒體庫</h2>
+                <div className="flex gap-2">
+                    {selectedIds.size > 0 && (
+                        <button
+                            onClick={() => setShowBulkDeleteConfirm(true)}
+                            className="px-4 py-2.5 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600 shadow-lg transition-all"
+                        >
+                            刪除選中 ({selectedIds.size})
+                        </button>
+                    )}
                     <label className={`cursor-pointer px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl text-sm font-bold hover:opacity-80 transition-all shadow-lg flex items-center gap-2 ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
                         {uploading ? (
                             <>
@@ -151,6 +203,22 @@ export default function MediaManager() {
                                 loading="lazy"
                             />
 
+                            {/* Selection Checkbox */}
+                            <div
+                                className={`absolute top-2 left-2 w-6 h-6 rounded-full border-2 cursor-pointer z-10 transition-all ${selectedIds.has(item.id)
+                                        ? 'bg-blue-500 border-blue-500 scale-110'
+                                        : 'border-white/50 bg-black/20 hover:bg-black/40 hover:border-white'
+                                    }`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleSelection(item.id);
+                                }}
+                            >
+                                {selectedIds.has(item.id) && (
+                                    <svg className="w-4 h-4 text-white mx-auto mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+                                )}
+                            </div>
+
                             {/* Overlay Actions */}
                             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                                 <button
@@ -178,6 +246,17 @@ export default function MediaManager() {
                 cancelText="取消"
                 onConfirm={confirmDelete}
                 onCancel={() => setDeleteConfirmId(null)}
+                isDestructive={true}
+            />
+
+            <ConfirmDialog
+                isOpen={showBulkDeleteConfirm}
+                title="批量刪除圖片"
+                message={`確定要刪除選中的 ${selectedIds.size} 張圖片嗎？此操作無法撤銷。`}
+                confirmText="刪除"
+                cancelText="取消"
+                onConfirm={handleBulkDelete}
+                onCancel={() => setShowBulkDeleteConfirm(false)}
                 isDestructive={true}
             />
         </div>
