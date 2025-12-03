@@ -89,9 +89,12 @@ export default function ArticleEditor({ id }: Props) {
     const [showTableModal, setShowTableModal] = useState(false);
     const [showMediaSelector, setShowMediaSelector] = useState(false);
     const [dragOver, setDragOver] = useState(false);
-    const [droppedFiles, setDroppedFiles] = useState<FileList | null>(null);
+    const [droppedFiles, setDroppedFiles] = useState<File[] | null>(null);
     const [tableRows, setTableRows] = useState(3);
     const [tableCols, setTableCols] = useState(3);
+
+    // Store selection range to persist across modal interactions
+    const selectionRef = React.useRef({ start: 0, end: 0 });
 
     const insertTable = () => {
         const textarea = document.getElementById('content-textarea') as HTMLTextAreaElement;
@@ -156,10 +159,10 @@ export default function ArticleEditor({ id }: Props) {
                 newCursorPos = start + (selectedText ? selectedText.length + 3 : 6); // Select 'url' or move to it
                 break;
             case 'image':
+                // Save current selection before opening modal
+                selectionRef.current = { start, end };
                 setShowMediaSelector(true);
-                // newText = text.substring(0, start) + `![${selectedText || '圖片描述'}](url)` + text.substring(end);
-                // newCursorPos = start + (selectedText ? selectedText.length + 5 : 7);
-                break;
+                return; // Return early to avoid setting content to empty string
             case 'code':
                 newText = text.substring(0, start) + `\`\`\`\n${selectedText || '程式碼'}\n\`\`\`` + text.substring(end);
                 newCursorPos = start + 4;
@@ -173,7 +176,7 @@ export default function ArticleEditor({ id }: Props) {
                 break;
         }
 
-        setArticle({ ...article, content: newText });
+        setArticle(prev => ({ ...prev, content: newText }));
 
         // Restore focus and cursor
         setTimeout(() => {
@@ -183,24 +186,31 @@ export default function ArticleEditor({ id }: Props) {
     };
 
     const handleMediaSelect = (url: string) => {
-        const textarea = document.getElementById('content-textarea') as HTMLTextAreaElement;
-        if (!textarea) return;
+        setArticle(prev => {
+            const content = prev.content || '';
+            const { start, end } = selectionRef.current;
 
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const text = textarea.value;
-        const selectedText = text.substring(start, end);
+            // If selection is invalid (e.g. 0,0 and content is not empty, but maybe user really wanted 0,0? 
+            // Usually 0,0 is fine if at start. But if we lost selection, it defaults to 0,0.
+            // Since we saved it in insertMarkdown, it should be correct relative to when button was clicked.
 
-        const newText = text.substring(0, start) + `![${selectedText || '圖片描述'}](${url})` + text.substring(end);
+            const selectedText = content.substring(start, end);
+            const newText = content.substring(0, start) + `![${selectedText || '圖片描述'}](${url})` + content.substring(end);
 
-        setArticle({ ...article, content: newText });
+            // Restore focus and cursor after render
+            setTimeout(() => {
+                const textarea = document.getElementById('content-textarea') as HTMLTextAreaElement;
+                if (textarea) {
+                    textarea.focus();
+                    const newCursorPos = start + (selectedText ? selectedText.length + 4 : 6) + url.length + 1;
+                    textarea.setSelectionRange(newCursorPos, newCursorPos);
+                }
+            }, 0);
+
+            return { ...prev, content: newText };
+        });
+
         setShowMediaSelector(false);
-
-        setTimeout(() => {
-            textarea.focus();
-            const newCursorPos = start + (selectedText ? selectedText.length + 4 : 6) + url.length + 1;
-            textarea.setSelectionRange(newCursorPos, newCursorPos);
-        }, 0);
     };
 
     const handleDragOver = (e: React.DragEvent) => {
@@ -222,11 +232,7 @@ export default function ArticleEditor({ id }: Props) {
             // Check if they are images
             const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
             if (imageFiles.length > 0) {
-                setDroppedFiles(files); // Store original FileList or filtered array? FileList is read-only.
-                // Actually we can just store the filtered array or the DataTransfer object if needed, 
-                // but let's just store the files we want to upload.
-                // Since setDroppedFiles expects FileList, let's just use the event's files for now and filter later or cast.
-                // Better: change state type to File[]
+                setDroppedFiles(imageFiles);
             }
         }
     };
@@ -235,7 +241,8 @@ export default function ArticleEditor({ id }: Props) {
         if (!droppedFiles || droppedFiles.length === 0) return;
 
         const formData = new FormData();
-        const imageFiles = Array.from(droppedFiles).filter(file => file.type.startsWith('image/'));
+        // droppedFiles is already filtered in handleDrop, but safe to check again or just use it
+        const imageFiles = droppedFiles;
 
         for (const file of imageFiles) {
             formData.append('files[]', file);
@@ -248,8 +255,12 @@ export default function ArticleEditor({ id }: Props) {
 
             if (data.success && data.data.items) {
                 const textarea = document.getElementById('content-textarea') as HTMLTextAreaElement;
-                let newText = article.content || '';
-                let insertPos = textarea ? textarea.selectionStart : newText.length;
+                // Use textarea.value to get the most current content, avoiding stale closure issues
+                let currentContent = textarea ? textarea.value : (article.content || '');
+                console.log('[ArticleEditor] confirmDropUpload - Textarea found:', !!textarea);
+                console.log('[ArticleEditor] confirmDropUpload - Current content length:', currentContent.length);
+
+                let insertPos = textarea ? textarea.selectionStart : currentContent.length;
 
                 // Insert all uploaded images
                 let insertedContent = '';
@@ -257,14 +268,30 @@ export default function ArticleEditor({ id }: Props) {
                     insertedContent += `\n![${img.filename}](${img.url})\n`;
                 });
 
+                let newText = '';
                 if (textarea) {
-                    newText = newText.substring(0, insertPos) + insertedContent + newText.substring(insertPos);
+                    newText = currentContent.substring(0, insertPos) + insertedContent + currentContent.substring(insertPos);
                 } else {
-                    newText += insertedContent;
+                    newText = currentContent + insertedContent;
                 }
+                console.log('[ArticleEditor] confirmDropUpload - New text length:', newText.length);
 
                 setArticle(prev => ({ ...prev, content: newText }));
                 toast.success(`成功上傳 ${data.data.items.length} 張圖片！`);
+
+                // Restore cursor position
+                if (textarea) {
+                    setTimeout(() => {
+                        textarea.focus();
+                        const newCursorPos = insertPos + insertedContent.length;
+                        textarea.setSelectionRange(newCursorPos, newCursorPos);
+                    }, 0);
+                }
+            } else {
+                // Handle case where success is true but no items (shouldn't happen if backend is good)
+                if (data.data.items && data.data.items.length === 0) {
+                    toast.error('上傳成功但未返回圖片數據');
+                }
             }
         } catch (error) {
             console.error('Upload failed', error);
@@ -433,8 +460,10 @@ export default function ArticleEditor({ id }: Props) {
                         >
                             <textarea
                                 id="content-textarea"
-                                value={article.content}
-                                onChange={e => setArticle({ ...article, content: e.target.value })}
+                                value={article.content || ''}
+                                onChange={e => {
+                                    setArticle(prev => ({ ...prev, content: e.target.value }));
+                                }}
                                 className="w-full h-[calc(100vh-450px)] bg-transparent text-lg leading-relaxed text-zinc-700 dark:text-zinc-300 placeholder-zinc-400 border-none outline-none resize-none font-mono p-4"
                                 placeholder="# 開始您的創作旅程..."
                             />
@@ -637,7 +666,7 @@ export default function ArticleEditor({ id }: Props) {
             <ConfirmDialog
                 isOpen={!!droppedFiles}
                 title="上傳圖片"
-                message={`確定要上傳 ${droppedFiles ? Array.from(droppedFiles).filter(f => f.type.startsWith('image/')).length : 0} 張圖片並插入文章嗎？`}
+                message={`確定要上傳 ${droppedFiles ? droppedFiles.length : 0} 張圖片並插入文章嗎？`}
                 confirmText="上傳並插入"
                 cancelText="取消"
                 onConfirm={confirmDropUpload}
