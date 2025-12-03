@@ -187,6 +187,8 @@ export default function ArticleEditor({ id }: Props) {
 
     const handleMediaSelect = (url: string) => {
         const { start, end } = selectionRef.current;
+        const textarea = document.getElementById('content-textarea') as HTMLTextAreaElement;
+        const savedScrollTop = textarea ? textarea.scrollTop : 0;
 
         setArticle(prev => {
             const content = prev.content || '';
@@ -220,11 +222,14 @@ export default function ArticleEditor({ id }: Props) {
                 const insertedTextLen = selectionLen > 0 ? selectionLen : 4; // '圖片描述' is 4 chars
 
                 // Length of inserted markdown: `![` (2) + text (len) + `](` (2) + url (len) + `)` (1)
-                // Total length = 5 + textLen + urlLen
+                // Total length = 5 + insertedTextLen + url.length;
                 const markdownLen = 5 + insertedTextLen + url.length;
 
                 const newCursorPos = start + markdownLen;
                 textarea.setSelectionRange(newCursorPos, newCursorPos);
+
+                // Restore scroll position to prevent jumping to bottom
+                textarea.scrollTop = savedScrollTop;
             }
         }, 0);
     };
