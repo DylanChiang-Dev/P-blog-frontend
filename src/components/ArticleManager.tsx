@@ -78,12 +78,15 @@ export default function ArticleManager() {
                         articles.map((article) => (
                             <div
                                 key={article.id}
-                                onClick={() => {
-                                    // Use native navigation to preserve cookies
-                                    window.location.assign(`/admin/editor/${article.id}`);
-                                }}
-                                className="group bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-[1.5rem] p-4 flex items-center gap-6 hover:bg-white/60 dark:hover:bg-white/10 transition-all hover:scale-[1.01] hover:shadow-xl cursor-pointer"
+                                className="group relative bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-[1.5rem] p-4 flex items-center gap-6 hover:bg-white/60 dark:hover:bg-white/10 transition-all hover:scale-[1.01] hover:shadow-xl"
                             >
+                                {/* Stretched Link for Navigation */}
+                                <a
+                                    href={`/admin/editor/${article.id}`}
+                                    className="absolute inset-0 z-0"
+                                    aria-label={`編輯 ${article.title}`}
+                                />
+
                                 {/* Status Dot */}
                                 <div className={`w-3 h-3 rounded-full shrink-0 ${article.status === 'published' ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-yellow-500'
                                     }`}></div>
@@ -107,7 +110,7 @@ export default function ArticleManager() {
                                 </div>
 
                                 {/* Actions */}
-                                <div className="flex items-center gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                                <div className="relative z-10 flex items-center gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                     {/* Preview Button */}
                                     <a
                                         href={`/posts/${article.id}`}
@@ -122,8 +125,6 @@ export default function ArticleManager() {
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                         </svg>
                                     </a>
-
-
 
                                     {/* Delete Button */}
                                     <button
