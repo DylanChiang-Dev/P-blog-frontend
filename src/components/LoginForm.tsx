@@ -16,6 +16,15 @@ export default function LoginForm() {
         try {
             const { data } = await api.post('/api/login', { email, password });
 
+            if (!data || data.success !== true) {
+                setError(
+                    typeof data === 'object' && data?.error
+                        ? data.error
+                        : '登入失敗：後端回應異常（可能後端服務/資料庫未啟動）'
+                );
+                return;
+            }
+
             if (data.success) {
                 // Store in localStorage for client-side
                 localStorage.setItem('access_token', data.data.access_token);
@@ -33,7 +42,25 @@ export default function LoginForm() {
                 window.location.href = '/admin';
             }
         } catch (err: any) {
-            setError(err.response?.data?.error || 'Login failed');
+            const responseError = err?.response?.data?.error;
+            const message = typeof err?.message === 'string' ? err.message : '';
+            console.error('[Login] Failed:', err);
+
+            if (responseError) {
+                setError(responseError);
+                return;
+            }
+
+            if (message.includes('ERR_CONTENT_DECODING_FAILED')) {
+                setError('登入失敗：瀏覽器回應解碼失敗（請先停用擴充套件/無痕模式再試）');
+                return;
+            }
+
+            setError(
+                message
+                    ? `登入失敗：${message}`
+                    : '登入失敗：後端目前無法使用（請檢查後端/DB/日誌）'
+            );
         } finally {
             setLoading(false);
         }

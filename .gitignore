@@ -12,6 +12,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# local dev server artifacts
+.astro-dev.pid
+.astro-dev.log
 
 # environment variables
 .env

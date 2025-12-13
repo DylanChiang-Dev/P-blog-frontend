@@ -2,6 +2,7 @@
 import "../styles/global.css";
 import ThemeToggle from "../components/ThemeToggle";
 import EditArticleButton from "../components/EditArticleButton";
+import ToastContainer from "../components/ToastContainer";
 
 interface Props {
 	title: string;
@@ -102,15 +103,6 @@ const { title, description = "A minimalist blog.", articleId } = Astro.props;
 		>
 			<p>&copy; {new Date().getFullYear()} Blog. 版權所有.</p>
 		</footer>
-		<script>
-			import React from "react";
-			import ToastContainer from "../components/ToastContainer";
-			import { createRoot } from "react-dom/client";
-
-			const container = document.createElement("div");
-			document.body.appendChild(container);
-			const root = createRoot(container);
-			root.render(React.createElement(ToastContainer));
-		</script>
+		<ToastContainer client:load />
 	</body>
 </html>

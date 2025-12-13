@@ -12,16 +12,6 @@ export default defineConfig({
   integrations: [react()],
   output: 'server', // SSR mode for dynamic routes
   vite: {
-    server: {
-      proxy: {
-        '/api': {
-          target: 'https://pyqapi.3331322.xyz',
-          changeOrigin: true,
-          secure: false,
-          rewrite: (path) => path
-        }
-      }
-    },
     plugins: [tailwindcss()]
   },
 

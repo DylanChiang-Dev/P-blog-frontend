@@ -1,10 +1,9 @@
 import axios from 'axios';
 
-// Development: Use relative path (Vite proxy)
-// Production: Use full URL (will use CF Function proxy in admin pages, direct in public pages)
-const API_URL = typeof window !== 'undefined' && window.location.hostname === 'localhost'
-    ? '' // Relative path for dev proxy
-    : 'https://pyqapi.3331322.xyz'; // Full URL for production
+// Browser: use same-origin `/api/*` (handled by `src/pages/api/[...path].ts`) to avoid CORS in all envs.
+// Server: call backend directly.
+const BACKEND_ORIGIN = import.meta.env.PUBLIC_API_URL ?? 'https://pyqapi.3331322.xyz';
+const API_URL = typeof window === 'undefined' ? BACKEND_ORIGIN : '';
 
 export const api = axios.create({
     baseURL: API_URL,
@@ -27,7 +26,15 @@ api.interceptors.request.use((config) => {
 
 // Response interceptor to handle token refresh
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        const contentType = String(response.headers?.['content-type'] ?? '');
+        if (contentType.includes('text/html')) {
+            return Promise.reject(
+                new Error('API returned HTML (likely a backend/server error).')
+            );
+        }
+        return response;
+    },
     async (error) => {
         const originalRequest = error.config;
 

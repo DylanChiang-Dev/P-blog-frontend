@@ -2,6 +2,8 @@ import type { AstroCookies } from 'astro';
 
 export async function checkServerAuth(cookies: AstroCookies) {
     const token = cookies.get('access_token')?.value;
+    const backendOrigin =
+        import.meta.env.PUBLIC_API_URL ?? 'https://pyqapi.3331322.xyz';
 
     if (!token) {
         return { authenticated: false, user: null };
@@ -9,7 +11,7 @@ export async function checkServerAuth(cookies: AstroCookies) {
 
     try {
         // Verify token with backend
-        const response = await fetch('https://pyqapi.3331322.xyz/api/me', {
+        const response = await fetch(`${backendOrigin}/api/me`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
