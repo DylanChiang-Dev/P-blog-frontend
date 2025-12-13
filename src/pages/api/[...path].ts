@@ -19,8 +19,10 @@ function rewriteSetCookieForRequest(cookie: string, host: string, isHttps: boole
 	if (parts.length === 0) return cookie;
 
 	const nameValue = parts[0];
+	const cookieName = nameValue.split('=')[0]?.trim() ?? '';
 	const attributes = parts.slice(1);
 	const rewritten: string[] = [nameValue];
+	let hadPath = false;
 
 	for (const attribute of attributes) {
 		if (!attribute) continue;
@@ -29,6 +31,17 @@ function rewriteSetCookieForRequest(cookie: string, host: string, isHttps: boole
 		const key = rawKey.trim();
 		const lowerKey = key.toLowerCase();
 		const rawValue = rawValueParts.join('=').trim();
+
+		if (lowerKey === 'path') {
+			hadPath = true;
+			// Ensure auth cookies are available to all API routes in local/proxy setups.
+			if (cookieName === 'access_token' || cookieName === 'refresh_token') {
+				rewritten.push('Path=/');
+			} else {
+				rewritten.push(rawValueParts.length ? `${key}=${rawValue}` : key);
+			}
+			continue;
+		}
 
 		if (lowerKey === 'domain') {
 			const domain = rawValue.replace(/^\./, '').toLowerCase();
@@ -59,6 +72,10 @@ function rewriteSetCookieForRequest(cookie: string, host: string, isHttps: boole
 		}
 
 		rewritten.push(rawValueParts.length ? `${key}=${rawValue}` : key);
+	}
+
+	if (!hadPath && (cookieName === 'access_token' || cookieName === 'refresh_token')) {
+		rewritten.push('Path=/');
 	}
 
 	return rewritten.join('; ');
