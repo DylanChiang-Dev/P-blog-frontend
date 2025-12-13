@@ -108,6 +108,21 @@ function filterResponseHeaders(headers: Headers) {
 	return filtered;
 }
 
+function getCookieValue(cookieHeader: string | null, name: string) {
+	if (!cookieHeader) return null;
+	const parts = cookieHeader.split(';');
+	for (const part of parts) {
+		const trimmed = part.trim();
+		if (!trimmed) continue;
+		const eqIndex = trimmed.indexOf('=');
+		if (eqIndex === -1) continue;
+		const cookieName = trimmed.slice(0, eqIndex).trim();
+		if (cookieName !== name) continue;
+		return trimmed.slice(eqIndex + 1);
+	}
+	return null;
+}
+
 const handler: APIRoute = async ({ request, url }) => {
 	const targetUrl = new URL(`${url.pathname}${url.search}`, BACKEND_ORIGIN);
 
@@ -116,6 +131,21 @@ const handler: APIRoute = async ({ request, url }) => {
 		headers.set('x-forwarded-host', url.host);
 		headers.set('x-forwarded-proto', url.protocol.replace(':', ''));
 		headers.set('accept-encoding', 'identity');
+
+		const isAuthEndpoint =
+			url.pathname === '/api/login' ||
+			url.pathname === '/api/logout' ||
+			url.pathname === '/api/token/refresh' ||
+			url.pathname === '/api/refresh';
+
+		// Some backend routes may still rely on Authorization header even when cookies exist.
+		// If we have an access_token cookie, attach it as Bearer to the upstream request.
+		if (!isAuthEndpoint && !headers.has('authorization')) {
+			const accessToken = getCookieValue(request.headers.get('cookie'), 'access_token');
+			if (accessToken) {
+				headers.set('authorization', `Bearer ${accessToken}`);
+			}
+		}
 
 		const hasBody = request.method !== 'GET' && request.method !== 'HEAD';
 		const body = hasBody ? await request.arrayBuffer() : undefined;
