@@ -25,12 +25,6 @@ export const $auth = map<AuthState>({
 export async function checkAuth() {
     $auth.setKey('loading', true);
     try {
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-            $auth.set({ isAuthenticated: false, user: null, loading: false });
-            return;
-        }
-
         const { data } = await api.get('/api/me');
         if (data.success) {
             $auth.set({
@@ -44,6 +38,7 @@ export async function checkAuth() {
     } catch (error) {
         $auth.set({ isAuthenticated: false, user: null, loading: false });
         localStorage.removeItem('access_token');
+        localStorage.removeItem('user');
     }
 }
 
@@ -53,13 +48,8 @@ export function logout() {
     api.post('/api/logout').catch(console.error); // Fire and forget
     console.log('[Auth] API logout called');
 
-    localStorage.removeItem('access_token');
     localStorage.removeItem('user');
     console.log('[Auth] LocalStorage cleared');
-
-    // Clear cookie
-    document.cookie = 'access_token=; path=/; max-age=0';
-    console.log('[Auth] Cookie cleared');
 
     $auth.set({ isAuthenticated: false, user: null, loading: false });
     console.log('[Auth] Auth state updated');

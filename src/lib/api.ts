@@ -13,17 +13,6 @@ export const api = axios.create({
     },
 });
 
-// Request interceptor to add token
-api.interceptors.request.use((config) => {
-    if (typeof window !== 'undefined' && window.localStorage) {
-        const token = localStorage.getItem('access_token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-    }
-    return config;
-});
-
 // Response interceptor to handle token refresh
 api.interceptors.response.use(
     (response) => {
@@ -42,26 +31,22 @@ api.interceptors.response.use(
             originalRequest._retry = true;
 
             try {
-                const { data } = await axios.post(
-                    `${API_URL}/api/token/refresh`,
-                    {},
-                    { withCredentials: true }
-                );
+                await axios.post(`${API_URL}/api/token/refresh`, null, {
+                    withCredentials: true,
+                    headers: { 'Content-Type': 'application/json' },
+                });
 
-                if (data.success && data.data.access_token) {
-                    if (typeof window !== 'undefined' && window.localStorage) {
-                        localStorage.setItem('access_token', data.data.access_token);
-                    }
-                    api.defaults.headers.common['Authorization'] = `Bearer ${data.data.access_token}`;
-                    originalRequest.headers['Authorization'] = `Bearer ${data.data.access_token}`;
-                    return api(originalRequest);
-                }
+                return api(originalRequest);
             } catch (refreshError) {
-                // Refresh failed, clear token and redirect to login if needed
-                if (typeof window !== 'undefined' && window.localStorage) {
-                    localStorage.removeItem('access_token');
-                    localStorage.removeItem('user');
-                    // Only redirect if we are in admin area
+                // Refresh failed, clear client state and redirect to login if needed
+                if (typeof window !== 'undefined') {
+                    try {
+                        localStorage.removeItem('access_token');
+                        localStorage.removeItem('user');
+                    } catch {
+                        // ignore
+                    }
+
                     if (window.location.pathname.startsWith('/admin')) {
                         window.location.href = '/admin/login';
                     }

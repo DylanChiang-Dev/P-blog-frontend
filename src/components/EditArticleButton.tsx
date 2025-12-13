@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { api } from '../lib/api';
 
 interface EditArticleButtonProps {
     articleId: string | number;
@@ -8,9 +9,19 @@ export default function EditArticleButton({ articleId }: EditArticleButtonProps)
     const [isLoggedIn, setIsLoggedIn] = useState(false);
 
     useEffect(() => {
-        // Check if user has access token in localStorage
-        const token = localStorage.getItem('access_token');
-        setIsLoggedIn(!!token);
+        let cancelled = false;
+
+        api.get('/api/me')
+            .then((res) => {
+                if (!cancelled) setIsLoggedIn(Boolean(res.data?.success));
+            })
+            .catch(() => {
+                if (!cancelled) setIsLoggedIn(false);
+            });
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     if (!isLoggedIn) return null;

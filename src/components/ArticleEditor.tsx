@@ -5,6 +5,7 @@ import ThemeToggle from './ThemeToggle';
 import MediaSelector from './MediaSelector';
 import ConfirmDialog from './ConfirmDialog';
 import type { Article } from '../types';
+import { checkAuth, $auth } from '../stores/auth';
 
 interface Props {
     id?: string;
@@ -25,11 +26,12 @@ export default function ArticleEditor({ id }: Props) {
 
     // Check authentication on mount
     useEffect(() => {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-        if (!token) {
-            window.location.href = '/admin/login';
-            return;
-        }
+        checkAuth().then(() => {
+            const auth = $auth.get();
+            if (!auth.isAuthenticated) {
+                window.location.href = '/admin/login';
+            }
+        });
     }, []);
 
     useEffect(() => {
