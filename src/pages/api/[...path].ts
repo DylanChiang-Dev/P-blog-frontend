@@ -14,6 +14,56 @@ const HOP_BY_HOP_HEADERS = new Set([
 	'upgrade',
 ]);
 
+function rewriteSetCookieForRequest(cookie: string, host: string, isHttps: boolean) {
+	const parts = cookie.split(';').map((part) => part.trim());
+	if (parts.length === 0) return cookie;
+
+	const nameValue = parts[0];
+	const attributes = parts.slice(1);
+	const rewritten: string[] = [nameValue];
+
+	for (const attribute of attributes) {
+		if (!attribute) continue;
+
+		const [rawKey, ...rawValueParts] = attribute.split('=');
+		const key = rawKey.trim();
+		const lowerKey = key.toLowerCase();
+		const rawValue = rawValueParts.join('=').trim();
+
+		if (lowerKey === 'domain') {
+			const domain = rawValue.replace(/^\./, '').toLowerCase();
+			const hostLower = host.toLowerCase();
+			const matchesHost =
+				hostLower === domain || hostLower.endsWith(`.${domain}`);
+			if (matchesHost) rewritten.push(`${key}=${rawValue}`);
+			continue;
+		}
+
+		if (lowerKey === 'secure') {
+			if (isHttps) rewritten.push(key);
+			continue;
+		}
+
+		if (lowerKey === 'partitioned') {
+			if (isHttps) rewritten.push(key);
+			continue;
+		}
+
+		if (lowerKey === 'samesite') {
+			if (!isHttps && rawValue.toLowerCase() === 'none') {
+				rewritten.push(`${key}=Lax`);
+			} else {
+				rewritten.push(`${key}=${rawValue}`);
+			}
+			continue;
+		}
+
+		rewritten.push(rawValueParts.length ? `${key}=${rawValue}` : key);
+	}
+
+	return rewritten.join('; ');
+}
+
 function filterRequestHeaders(headers: Headers) {
 	const filtered = new Headers();
 	for (const [key, value] of headers.entries()) {
@@ -33,6 +83,7 @@ function filterResponseHeaders(headers: Headers) {
 	for (const [key, value] of headers.entries()) {
 		const lowerKey = key.toLowerCase();
 		if (HOP_BY_HOP_HEADERS.has(lowerKey)) continue;
+		if (lowerKey === 'set-cookie') continue;
 		if (lowerKey === 'content-encoding') continue;
 		if (lowerKey === 'content-length') continue;
 		filtered.set(key, value);
@@ -60,6 +111,25 @@ const handler: APIRoute = async ({ request, url }) => {
 		});
 
 		const upstreamHeaders = filterResponseHeaders(upstreamResponse.headers);
+		const setCookies =
+			typeof (upstreamResponse.headers as any).getSetCookie === 'function'
+				? (upstreamResponse.headers as any).getSetCookie()
+				: [];
+		const fallbackSetCookie = upstreamResponse.headers.get('set-cookie');
+		const allSetCookies: string[] =
+			Array.isArray(setCookies) && setCookies.length > 0
+				? setCookies
+				: fallbackSetCookie
+					? [fallbackSetCookie]
+					: [];
+
+		const isHttps = url.protocol === 'https:';
+		for (const cookie of allSetCookies) {
+			upstreamHeaders.append(
+				'set-cookie',
+				rewriteSetCookieForRequest(cookie, url.hostname, isHttps),
+			);
+		}
 		const upstreamContentType = upstreamResponse.headers.get('content-type') ?? '';
 
 		// Buffer text/JSON responses to avoid any stream+compression issues in dev/proxies.
