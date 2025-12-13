@@ -12,7 +12,8 @@ export default function AdminDashboard() {
         totalArticles: 0,
         totalComments: 0,
         totalViews: 0,
-        loading: true
+        loading: true,
+        commentsAuthorized: true,
     });
 
     useEffect(() => {
@@ -25,8 +26,23 @@ export default function AdminDashboard() {
             // We fetch a larger limit to calculate total views across all articles
             const articlesRes = await api.get('/api/blog/articles?limit=1000');
 
-            // Fetch pending comments
-            const commentsRes = await api.get('/api/blog/comments/pending');
+            let pendingCommentsCount = 0;
+            let commentsAuthorized = true;
+            try {
+                const commentsRes = await api.get('/api/blog/comments/pending');
+                pendingCommentsCount = Array.isArray(commentsRes.data?.data)
+                    ? commentsRes.data.data.length
+                    : Array.isArray(commentsRes.data?.data?.items)
+                        ? commentsRes.data.data.items.length
+                        : 0;
+            } catch (error: any) {
+                const status = error?.response?.status;
+                if (status === 401 || status === 403) {
+                    commentsAuthorized = false;
+                } else {
+                    throw error;
+                }
+            }
 
             const articles = articlesRes.data.data?.items || [];
             // Calculate total views by summing view_count of all articles
@@ -34,13 +50,15 @@ export default function AdminDashboard() {
 
             setStats({
                 totalArticles: articlesRes.data.data?.pagination?.total || 0,
-                totalComments: commentsRes.data.data?.length || 0,
+                totalComments: pendingCommentsCount,
                 totalViews: totalViews,
                 loading: false
+                ,
+                commentsAuthorized
             });
         } catch (error) {
             console.error('Failed to fetch stats', error);
-            setStats(prev => ({ ...prev, loading: false }));
+            setStats(prev => ({ ...prev, loading: false, commentsAuthorized: prev.commentsAuthorized ?? true }));
         }
     };
 
@@ -66,7 +84,14 @@ export default function AdminDashboard() {
                             <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mt-1">
                                 <span>文章: {stats.loading ? '...' : stats.totalArticles}</span>
                                 <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-700"></span>
-                                <span>待審核留言: {stats.loading ? '...' : stats.totalComments}</span>
+                                <span>
+                                    待審核留言:{' '}
+                                    {stats.loading
+                                        ? '...'
+                                        : stats.commentsAuthorized
+                                            ? stats.totalComments
+                                            : '無權限'}
+                                </span>
                                 <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-700"></span>
                                 <span>瀏覽: {stats.loading ? '...' : stats.totalViews}</span>
                             </div>

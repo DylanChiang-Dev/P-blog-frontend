@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import type { Comment } from '../types';
+import { toast } from '../stores/toast';
 
 import ConfirmDialog from './ConfirmDialog';
 
@@ -9,6 +10,7 @@ export default function CommentModeration() {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
     const [deleteId, setDeleteId] = useState<number | null>(null);
+    const [permissionDenied, setPermissionDenied] = useState(false);
 
     useEffect(() => {
         fetchComments();
@@ -23,6 +25,7 @@ export default function CommentModeration() {
             // We'll fetch all statuses and filter client-side since we don't know all endpoints
             const { data } = await api.get(endpoint);
             if (data.success) {
+                setPermissionDenied(false);
                 // Backend returns comments without status field, so we add it
                 const commentsWithStatus = (data.data.items || data.data || []).map((comment: any) => ({
                     ...comment,
@@ -30,7 +33,13 @@ export default function CommentModeration() {
                 }));
                 setComments(commentsWithStatus);
             }
-        } catch (error) {
+        } catch (error: any) {
+            const status = error?.response?.status;
+            if (status === 401 || status === 403) {
+                setPermissionDenied(true);
+                setComments([]);
+                return;
+            }
             console.error('獲取留言失敗', error);
             // Fallback for demo if backend endpoint is missing
             setComments([]);
@@ -67,6 +76,12 @@ export default function CommentModeration() {
     const filteredComments = comments.filter(c => filter === 'all' || c.status === filter);
 
     if (loading) return <div className="p-8 text-center">載入留言中...</div>;
+    if (permissionDenied)
+        return (
+            <div className="p-8 text-center text-gray-500">
+                無權限查看留言（401/403）
+            </div>
+        );
 
     return (
         <div className="space-y-6 animate-fade-in">
