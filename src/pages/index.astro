@@ -22,7 +22,8 @@ try {
   }
 } catch (e) {
   console.warn("Backend unavailable", e);
-  error = "暫時無法獲取文章，請稍後再試。";
+  const errorMessage = e instanceof Error ? e.message : String(e);
+  error = `暫時無法獲取文章，請稍後再試。(${errorMessage})`;
 }
 
 // const featuredArticle = articles[0];

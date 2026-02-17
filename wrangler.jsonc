@@ -1,16 +1,19 @@
 {
-	"main": "dist/_worker.js/index.js",
-	"name": "far-fireball",
+  "main": "dist/_worker.js/index.js",
+  "name": "far-fireball",
   "compatibility_date": "2025-11-27",
   "compatibility_flags": [
     "nodejs_compat",
     "global_fetch_strictly_public"
   ],
-	"assets": {
-		"binding": "ASSETS",
-		"directory": "./dist"
-	},
-	"observability": {
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "./dist"
+  },
+  "observability": {
     "enabled": true
+  },
+  "vars": {
+    "PUBLIC_API_URL": "https://api.3331322.xyz"
   }
 }
