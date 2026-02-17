@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api';
+import { getMediaUrl } from '../lib/media';
 import { toast } from '../stores/toast';
 import ConfirmDialog from './ConfirmDialog';
 
@@ -135,7 +136,7 @@ export default function MediaSelector({ isOpen, onClose, onSelect }: Props) {
         if (isManageMode) {
             toggleSelection(item.id);
         } else {
-            onSelect(item.url);
+            onSelect(getMediaUrl(item.url));
         }
     };
 
@@ -210,19 +211,19 @@ export default function MediaSelector({ isOpen, onClose, onSelect }: Props) {
                                     onClick={() => handleImageClick(item)}
                                 >
                                     <img
-                                        src={item.url}
+                                        src={getMediaUrl(item.url)}
                                         alt={item.filename}
                                         className="w-full h-full object-cover"
                                         loading="lazy"
                                     />
                                     <div className={`absolute inset-0 transition-colors flex items-center justify-center ${isManageMode
-                                            ? selectedIds.has(item.id) ? 'bg-blue-500/20' : 'bg-black/0 hover:bg-black/10'
-                                            : 'bg-black/0 group-hover:bg-black/20'
+                                        ? selectedIds.has(item.id) ? 'bg-blue-500/20' : 'bg-black/0 hover:bg-black/10'
+                                        : 'bg-black/0 group-hover:bg-black/20'
                                         }`}>
                                         {isManageMode ? (
                                             <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${selectedIds.has(item.id)
-                                                    ? 'bg-blue-500 border-blue-500 scale-110'
-                                                    : 'border-white bg-black/20 hover:bg-black/40'
+                                                ? 'bg-blue-500 border-blue-500 scale-110'
+                                                : 'border-white bg-black/20 hover:bg-black/40'
                                                 }`}>
                                                 {selectedIds.has(item.id) && (
                                                     <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>

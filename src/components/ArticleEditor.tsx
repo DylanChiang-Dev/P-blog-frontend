@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../lib/api';
+import { getMediaUrl } from '../lib/media';
 import { toast } from '../stores/toast';
 import ThemeToggle from './ThemeToggle';
 import MediaSelector from './MediaSelector';
@@ -80,7 +81,7 @@ export default function ArticleEditor({ id }: Props) {
             });
 
             if (data.success && data.data.images?.[0]) {
-                setArticle(prev => ({ ...prev, cover_image: data.data.images[0].url }));
+                setArticle(prev => ({ ...prev, cover_image: getMediaUrl(data.data.images[0].url) }));
             }
         } catch (error) {
             console.error('Upload failed', error);
@@ -296,7 +297,7 @@ export default function ArticleEditor({ id }: Props) {
                 // Insert all uploaded images
                 let insertedContent = '';
                 data.data.items.forEach((img: any) => {
-                    insertedContent += `\n![${img.filename}](${img.url})\n`;
+                    insertedContent += `\n![${img.filename}](${getMediaUrl(img.url)})\n`;
                 });
 
                 let newText = '';
@@ -628,7 +629,7 @@ export default function ArticleEditor({ id }: Props) {
                                         }`}>
                                         {article.cover_image ? (
                                             <>
-                                                <img src={article.cover_image} alt="Cover" className="w-full h-full object-cover" />
+                                                <img src={getMediaUrl(article.cover_image)} alt="Cover" className="w-full h-full object-cover" />
                                                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <span className="text-white font-medium">更換圖片</span>
                                                 </div>

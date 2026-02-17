@@ -3,7 +3,7 @@ import type { AstroCookies } from 'astro';
 export async function checkServerAuth(cookies: AstroCookies) {
     const token = cookies.get('access_token')?.value;
     const backendOrigin =
-        import.meta.env.PUBLIC_API_URL ?? 'https://pyq.3331322.xyz';
+        import.meta.env.PUBLIC_API_URL ?? 'https://api.3331322.xyz';
 
     if (!token) {
         return { authenticated: false, user: null };

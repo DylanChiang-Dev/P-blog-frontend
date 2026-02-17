@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api';
+import { getMediaUrl } from '../lib/media';
 import { toast } from '../stores/toast';
 import ConfirmDialog from './ConfirmDialog';
 
@@ -197,7 +198,7 @@ export default function MediaManager() {
                     {media.map(item => (
                         <div key={item.id} className="group relative aspect-square bg-gray-100 dark:bg-gray-800 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-300">
                             <img
-                                src={item.url}
+                                src={getMediaUrl(item.url)}
                                 alt={item.filename}
                                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                 loading="lazy"
@@ -206,8 +207,8 @@ export default function MediaManager() {
                             {/* Selection Checkbox */}
                             <div
                                 className={`absolute top-2 left-2 w-6 h-6 rounded-full border-2 cursor-pointer z-10 transition-all ${selectedIds.has(item.id)
-                                        ? 'bg-blue-500 border-blue-500 scale-110'
-                                        : 'border-white/50 bg-black/20 hover:bg-black/40 hover:border-white'
+                                    ? 'bg-blue-500 border-blue-500 scale-110'
+                                    : 'border-white/50 bg-black/20 hover:bg-black/40 hover:border-white'
                                     }`}
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -222,7 +223,7 @@ export default function MediaManager() {
                             {/* Overlay Actions */}
                             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                                 <button
-                                    onClick={() => handleCopy(item.url)}
+                                    onClick={() => handleCopy(getMediaUrl(item.url))}
                                     className="px-4 py-2 bg-white text-black text-xs font-bold rounded-xl hover:bg-gray-100 shadow-lg transform hover:scale-105 transition-all"
                                 >
                                     複製鏈接

@@ -1,5 +1,6 @@
 ---
 import type { Article } from "../types";
+import { getMediaUrl } from "../lib/media";
 
 interface Props {
   article: Article;
@@ -26,7 +27,7 @@ const formatDate = (dateString: string) => {
       {
         article.cover_image ? (
           <img
-            src={article.cover_image}
+            src={getMediaUrl(article.cover_image)}
             alt={article.title}
             class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
             loading="lazy"
