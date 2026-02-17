@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Browser: use same-origin `/api/*` (handled by `src/pages/api/[...path].ts`) to avoid CORS in all envs.
 // Server: call backend directly.
-const BACKEND_ORIGIN = import.meta.env.PUBLIC_API_URL ?? 'https://pyqapi.3331322.xyz';
+const BACKEND_ORIGIN = import.meta.env.PUBLIC_API_URL ?? 'https://pyq.3331322.xyz';
 const API_URL = typeof window === 'undefined' ? BACKEND_ORIGIN : '';
 
 export const api = axios.create({

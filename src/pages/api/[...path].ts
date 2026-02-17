@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 
 const BACKEND_ORIGIN =
-	import.meta.env.PUBLIC_API_URL ?? 'https://pyqapi.3331322.xyz';
+	import.meta.env.PUBLIC_API_URL ?? 'https://pyq.3331322.xyz';
 
 const HOP_BY_HOP_HEADERS = new Set([
 	'connection',
