@@ -18,8 +18,8 @@ export default function ArticleManager() {
             // Fetch both published and draft articles in parallel to ensure we get everything
             // status=all might be unreliable for non-admin users
             const [publishedRes, draftRes] = await Promise.all([
-                api.get('/api/blog/articles?limit=200&status=published'),
-                api.get('/api/blog/articles?limit=200&status=draft')
+                api.get('/api/blog/articles?limit=200&status=published&source=personal'),
+                api.get('/api/blog/articles?limit=200&status=draft&source=personal')
             ]);
 
             let allArticles: Article[] = [];

@@ -12,7 +12,7 @@ let error = null;
 try {
   // Backend now supports proper sorting and pagination
   const response = await api.get(
-    "/api/blog/articles?status=published&limit=200",
+    "/api/blog/articles?status=published&limit=200&source=personal"
   );
   if (response.data.success) {
     articles = response.data.data.items;

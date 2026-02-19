@@ -24,7 +24,7 @@ export default function AdminDashboard() {
         try {
             // Fetch articles with minimal data to get total count from pagination
             // We fetch a larger limit to calculate total views across all articles
-            const articlesRes = await api.get('/api/blog/articles?limit=1000');
+            const articlesRes = await api.get('/api/blog/articles?limit=1000&source=personal');
 
             let pendingCommentsCount = 0;
             let commentsAuthorized = true;

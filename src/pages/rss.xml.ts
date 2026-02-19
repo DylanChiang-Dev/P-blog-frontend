@@ -5,7 +5,7 @@ import type { Article } from '../types';
 export async function GET(context: any) {
     let items = [];
     try {
-        const { data } = await api.get('/api/blog/articles?status=published&limit=100');
+        const { data } = await api.get('/api/blog/articles?status=published&limit=100&source=personal');
         if (data.success) {
             items = data.data.items.map((article: Article) => ({
                 title: article.title,
